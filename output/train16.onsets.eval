@@ -1,6 +1,6 @@
-TP: 23
-FP: 54
-FN: 77
-Precision: 0.2987012987012987
-Recall: 0.23
-F-Measure: 0.25988700564971756
+TP: 1
+FP: 0
+FN: 99
+Precision: 1.0
+Recall: 0.01
+F-Measure: 0.019801980198019802

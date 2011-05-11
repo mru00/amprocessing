@@ -9,6 +9,7 @@ for f in data/*.wav; do
   mainclass=at.cp.jku.teaching.amprocessing.Runner
   basename=data/$(basename $f .wav)
   java $mainclass -i $f -g $basename.onsets -t $basename.bpms -o output
+  cat output/$(basename $basename).onsets.eval
 done
 
 onsets=output/onsets.all
@@ -23,6 +24,8 @@ done > $onsets
 
 gnuplot <<EOF
 set terminal png
+set style data boxes
+set boxwidth 0.4
 plot "$onsets" using 5 title 'P', "$onsets" using 6 title 'R', "$onsets" using 7 title 'F'
 EOF
 ) > output/onsets.png

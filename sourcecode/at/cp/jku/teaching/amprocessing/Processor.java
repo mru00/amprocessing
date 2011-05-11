@@ -7,6 +7,7 @@
 package at.cp.jku.teaching.amprocessing;
 
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  *
@@ -44,6 +45,11 @@ public class Processor {
     public void analyze() {
         Log.log("Running Analysis...");
 
+        analyze_fftshift();
+    }
+
+    private void analyze_fftshift() {
+
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         double[] fftshift = new double[numSamples];
@@ -66,8 +72,11 @@ public class Processor {
                 // i assume currentFrame.size == lastFrame.size
 
                 double diff = vectDiff(currentFrame.magnitudes[j], currentFrame.unwrappedPhases[j], lastFrame.magnitudes[j], lastFrame.unwrappedPhases[j]);
-                sum += diff * diff;
+                sum += Math.abs(diff);
             }
+
+            sum /= currentFrame.size;
+
 
             if (sum > maxshift) {
                 maxshift = sum;
@@ -77,24 +86,35 @@ public class Processor {
             fftshift[i] = sum;
         }
 
+//        for (int i = 1; i < numSamples; i++) {
+//            fftshift[i] /= maxshift;
+//        }
 
-        int lastPeak = Integer.MIN_VALUE;
-        
         // simple peak picking
-        for (int i = 2; i < numSamples - 1; i++) {
+        Integer[] peaks = pickPeaks(fftshift, 0.1);
+        for (int p: peaks)
+            m_onsetList.add((p - 1) * m_audiofile.hopTime);
+        
+    }
+
+    private Integer[] pickPeaks(double[] data, double threshold) {
+        List<Integer> peaks = new LinkedList<Integer>();
+
+        // simple peak picking
+        for (int i = 1; i < data.length - 1; i++) {
 
             // possible peak
-            if (fftshift[i] > maxshift / 4 && fftshift[i - 1] < fftshift[i] && fftshift[i] > fftshift[i + 1]) {
+            if (data[i] > threshold && data[i - 1] < data[i] && data[i] > data[i + 1]) {
 
                 // TODO: find a way to remove the constant
                 // either filter the fftshift (matlab: filtfilt)
                 // or calculate something reasonable from hopTime
 
-                m_onsetList.add((i - 1) * m_audiofile.hopTime);
+                peaks.add(i);
 
             }
         }
-
+        return peaks.toArray(new Integer[peaks.size()]);
     }
 
     private double vectDiff(double m1, double phi1, double m2, double phi2) {
