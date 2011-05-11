@@ -1,6 +1,6 @@
-#! /bin/bash -e
+#! /bin/bash -ex
 
-CLASSPATH=build/classes:build/classes/jopt-simple.jar
+export CLASSPATH=build/classes:build/classes/jopt-simple.jar
 WAVS=data/*.wav
 
 ant
@@ -8,7 +8,7 @@ ant
 for f in data/*.wav; do
   mainclass=at.cp.jku.teaching.amprocessing.Runner
   basename=data/$(basename $f .wav)
-#  java -cp $CLASSPATH $mainclass -i $f -g $basename.onsets -t $basename.bpms -o output
+  java $mainclass -i $f -g $basename.onsets -t $basename.bpms -o output
 done
 
 onsets=output/onsets.all

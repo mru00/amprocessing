@@ -44,16 +44,67 @@ public class Processor {
     public void analyze() {
         Log.log("Running Analysis...");
 
+        final int numSamples = m_audiofile.spectralDataContainer.size();
+
+        double[] fftshift = new double[numSamples];
+        double maxshift = Double.MIN_VALUE;
+
+        // analyze
+
         //This is a very simple kind of Onset Detector... You have to implement at least 2 more different onset detection functions
         // have a look at the SpectralData Class - there you can also access the magnitude and the phase in each FFT bin...
-        for (int i = 0; i < m_audiofile.spectralDataContainer.size(); i++) {
-            if (i == 0) {
-                continue;
+        for (int i = 1; i < numSamples; i++) {
+            //if (i == 0) {
+//                continue;
+//            }
+
+            SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+            SpectralData lastFrame = m_audiofile.spectralDataContainer.get(i - 1);
+
+            double sum = 0.0;
+            for (int j = 0; j < currentFrame.size; j++) {
+                // i assume currentFrame.size == lastFrame.size
+
+                double diff = vectDiff(currentFrame.magnitudes[j], currentFrame.unwrappedPhases[j], lastFrame.magnitudes[j], lastFrame.unwrappedPhases[j]);
+                sum += diff * diff;
             }
-            if (m_audiofile.spectralDataContainer.get(i).totalEnergy - m_audiofile.spectralDataContainer.get(i - 1).totalEnergy > 10) {
-                m_onsetList.add(i * m_audiofile.hopTime);
+
+            if (sum > maxshift) {
+                maxshift = sum;
+            }
+
+            //System.out.println((i - 1) * m_audiofile.hopTime + "," + sum);
+            fftshift[i] = sum;
+        }
+
+
+        int lastPeak = Integer.MIN_VALUE;
+        
+        // simple peak picking
+        for (int i = 2; i < numSamples - 1; i++) {
+
+            // possible peak
+            if (fftshift[i] > maxshift / 4 && fftshift[i - 1] < fftshift[i] && fftshift[i] > fftshift[i + 1]) {
+
+                // TODO: find a way to remove the constant
+                // either filter the fftshift (matlab: filtfilt)
+                // or calculate something reasonable from hopTime
+
+                m_onsetList.add((i - 1) * m_audiofile.hopTime);
+
             }
         }
+
+    }
+
+    private double vectDiff(double m1, double phi1, double m2, double phi2) {
+        double x1, y1, x2, y2;
+        x1 = m1 * Math.cos(phi1);
+        y1 = m1 * Math.sin(phi1);
+        x2 = m2 * Math.cos(phi2);
+        y2 = m2 * Math.sin(phi2);
+
+        return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
     }
 
     public LinkedList<Double> getOnsets() {
