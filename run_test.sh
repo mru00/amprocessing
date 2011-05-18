@@ -8,8 +8,9 @@ ant
 for f in data/*.wav; do
   mainclass=at.cp.jku.teaching.amprocessing.Runner
   basename=data/$(basename $f .wav)
-  java $mainclass -i $f -g $basename.onsets -t $basename.bpms -o output
+  java $mainclass -i $f -g $basename.onsets -t $basename.bpms -o output -p $basename.odf -q
   cat output/$(basename $basename).onsets.eval
+
 done
 
 onsets=output/onsets.all

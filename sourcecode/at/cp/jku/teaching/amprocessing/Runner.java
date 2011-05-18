@@ -13,6 +13,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,14 +41,15 @@ public class Runner {
         String outputTempoFileName = new String();
         String onsetGroundTruthFileName = new String();
         String tempoGroundTruthFileName = new String();
+        String plotFileName = null;
         boolean hasOnsetGroundTruth = false;
         boolean hasTempoGroundTruth = false;
 
-        OptionParser parser = new OptionParser("vi:o:g:t:");
+        OptionParser parser = new OptionParser("qi:o:g:t:p:");
         OptionSet options = parser.parse(args);
 
-        if (options.has("v")) {
-            Log.doLog = true;
+        if (options.has("q")) {
+            Log.doLog = false;
         }
 
 
@@ -84,6 +86,10 @@ public class Runner {
             hasOnsetGroundTruth = true;
         }
 
+        if (options.has("p")) {
+            plotFileName = options.valueOf("p").toString();;
+        }
+
         if (options.has("t")) {
             tempoGroundTruthFileName = options.valueOf("t").toString();
             hasTempoGroundTruth = true;
@@ -92,7 +98,7 @@ public class Runner {
         Processor p = new Processor(wavFileName);
         p.analyze();
 
- 	Log.log();
+        Log.log();
         Log.log("Outputting Onset Times to " + outputOnsetsFileName + "...");
         writeDataToFile(p.getOnsets(), outputOnsetsFileName);
         Log.log("Outputting Tempo to " + outputTempoFileName + "...");
@@ -107,12 +113,15 @@ public class Runner {
             evaluateTempo(p.getTempo(), tempoGroundTruthFileName, tempoEvalOut);
         }
 
+        if (plotFileName != null) {
+            writeDataToFile(p.onsetDetectionFunction, p.m_audiofile.hopTime, plotFileName);
+        }
     }
 
     /*
      * Simple Fileout Method for LinkedList<Double>
      */
-    private static void writeDataToFile(LinkedList<Double> data, String filename) {
+    private static void writeDataToFile(List<Double> data, String filename) {
         try {
             FileWriter outputwriter = new FileWriter(filename);
             for (Double d : data) {
@@ -124,6 +133,23 @@ public class Runner {
             Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
+    private static void writeDataToFile(double[] data, double hoptime, String filename) {
+        try {
+            FileWriter outputwriter = new FileWriter(filename);
+            int i = 0;
+            for (Double d : data) {
+                outputwriter.write(i * hoptime + " ");
+                outputwriter.write(d + "\n");
+                i++;
+            }
+            outputwriter.flush();
+            outputwriter.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
 
     /*
      * Simple Fileout Method for a single double (the tempo...)

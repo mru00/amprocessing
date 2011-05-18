@@ -10,7 +10,7 @@ package at.cp.jku.teaching.amprocessing;
  * @author mru
  */
 public class Log {
-    public static boolean doLog = false;
+    public static boolean doLog = true;
     public static void log(String message) {
         if (doLog) System.out.println(message);
     }
