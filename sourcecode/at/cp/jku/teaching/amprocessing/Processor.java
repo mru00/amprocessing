@@ -8,6 +8,7 @@ package at.cp.jku.teaching.amprocessing;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Collections;
 
 /**
  *
@@ -37,7 +38,10 @@ public class Processor {
         // if you would like to work with multiple resolutions you simple create multiple AudioFile objects with different parameters
         // given an audio file with 44.100 Hz the parameters below translate to an FFT with size 2048 points
         // Note that the value is not taken to be precise; it is adjusted so that the FFT Size is always power of 2.
+
         m_audiofile = new AudioFile(m_filename, 0.02322, 0.005);
+
+        //m_audiofile = new AudioFile(m_filename, 0.002322, 0.005);
         // this starts the extraction of the basis features (the STFT)
         m_audiofile.processFile();
     }
@@ -50,22 +54,50 @@ public class Processor {
         final int numSamples = m_audiofile.spectralDataContainer.size();
         onsetDetectionFunction = new double[numSamples];
 
+        Integer[] peaks;
+        switch (7) {
+            case 1:
+                peaks = analyze_phase_deviation();
+                break;
+            case 2:
+                peaks = analyze_spectral_flux();
+                break;
+            case 3:
+                peaks = analyze_complex_domain();
+                break;
+            case 4:
+                peaks = analyze_weighted_phase_deviation();
+                break;
+            case 5:
+                peaks = analyze_normalized_weighted_phase_deviation();
+                break;
+            case 6:
+                peaks = analyze_rectified_complex_domain();
+                break;
+            case 7:
+                peaks = analyze_fftshift();
+                break;
+            default:
+                peaks = null;
+        }
 
-        analyze_spectral_flux();
 
+        for (int p : peaks) {
+            m_onsetList.add(p * m_audiofile.hopTime);
+        }
+
+//        Collections.sort(m_onsetList);
 
         System.out.println("found peaks: " + m_onsetList.size());
     }
 
-    private void analyze_spectral_flux() {
+    private Integer[] analyze_spectral_flux() {
         // cmp http://www.dafx.ca/proceedings/papers/p_133.pdf
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
             final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
-            final double[] phi = currentFrame.unwrappedPhases;
-
             double acc = 0.0;
             for (int j = 1; j < currentFrame.size; j++) {
                 acc += halfRect(Math.abs(currentFrame.magnitudes[j]) - Math.abs(currentFrame.magnitudes[j - 1]));
@@ -73,13 +105,10 @@ public class Processor {
             onsetDetectionFunction[i] = acc;
         }
 
-        Integer[] peaks = pickPeaksDixon(onsetDetectionFunction, -10000.0, 0.9);
-        for (int p : peaks) {
-            m_onsetList.add((p - 1) * m_audiofile.hopTime);
-        }
+        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
-    private void analyze_phase_deviation() {
+    private Integer[] analyze_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
@@ -94,13 +123,30 @@ public class Processor {
             onsetDetectionFunction[i] = dphi_acc / currentFrame.size;
         }
 
-        Integer[] peaks = pickPeaksSimple(onsetDetectionFunction, 0);
-        for (int p : peaks) {
-            m_onsetList.add((p - 1) * m_audiofile.hopTime);
-        }
+        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
-    private void analyze_complex_domain() {
+    private Integer[] analyze_normalized_weighted_phase_deviation() {
+        final int numSamples = m_audiofile.spectralDataContainer.size();
+
+        for (int i = 0; i < numSamples; i++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+            final double[] phi = currentFrame.unwrappedPhases;
+
+            double dphi_acc = 0.0;
+            double mag_acc = 0.0;
+            for (int j = 2; j < currentFrame.size; j++) {
+                double dphi = phi[j] + phi[j - 2] - 2 * phi[j - 1];
+                dphi_acc += Math.abs(currentFrame.magnitudes[j] * dphi);
+                mag_acc += Math.abs(currentFrame.magnitudes[j]);
+            }
+            onsetDetectionFunction[i] = dphi_acc / mag_acc;
+        }
+
+        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
+    }
+
+    private Integer[] analyze_weighted_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
@@ -110,32 +156,65 @@ public class Processor {
             double dphi_acc = 0.0;
             for (int j = 2; j < currentFrame.size; j++) {
                 double dphi = phi[j] + phi[j - 2] - 2 * phi[j - 1];
-                dphi_acc += Math.abs(dphi);
+                dphi_acc += Math.abs(currentFrame.magnitudes[j] * dphi);
             }
             onsetDetectionFunction[i] = dphi_acc / currentFrame.size;
         }
 
-        Integer[] peaks = pickPeaksDixon(onsetDetectionFunction, 10, 0.1);
-        for (int p : peaks) {
-            m_onsetList.add((p - 1) * m_audiofile.hopTime);
-        }
+        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
-    private void analyze_fftshift() {
+    private Integer[] analyze_complex_domain() {
+        final int numSamples = m_audiofile.spectralDataContainer.size();
+
+        for (int i = 0; i < numSamples; i++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+            final double[] phi = currentFrame.unwrappedPhases;
+
+            double deviation_acc = 0.0;
+            for (int j = 2; j < currentFrame.size; j++) {
+
+                double phi_t = phi[j - 1] + (phi[j - 1] - phi[j - 2]);
+                double mag_t = currentFrame.magnitudes[j - 1];
+
+                deviation_acc += vectDiff(currentFrame.magnitudes[j], phi[j], mag_t, phi_t);
+            }
+            onsetDetectionFunction[i] = deviation_acc;
+        }
+
+        return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
+    }
+
+    private Integer[] analyze_rectified_complex_domain() {
+        final int numSamples = m_audiofile.spectralDataContainer.size();
+
+        for (int i = 0; i < numSamples; i++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+            final double[] phi = currentFrame.unwrappedPhases;
+
+            double deviation_acc = 0.0;
+            for (int j = 2; j < currentFrame.size; j++) {
+
+                double phi_t = phi[j - 1] + (phi[j - 1] - phi[j - 2]);
+                double mag_t = currentFrame.magnitudes[j - 1];
+
+                if (currentFrame.magnitudes[j] >= currentFrame.magnitudes[j - 1]) {
+                    deviation_acc += vectDiff(currentFrame.magnitudes[j], phi[j], mag_t, phi_t);
+                }
+            }
+            onsetDetectionFunction[i] = deviation_acc;
+        }
+
+        return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
+    }
+
+    private Integer[] analyze_fftshift() {
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
-        double[] fftshift = new double[numSamples];
         double maxshift = Double.MIN_VALUE;
 
-        // analyze
-
-        //This is a very simple kind of Onset Detector... You have to implement at least 2 more different onset detection functions
-        // have a look at the SpectralData Class - there you can also access the magnitude and the phase in each FFT bin...
         for (int i = 1; i < numSamples; i++) {
-            //if (i == 0) {
-//                continue;
-//            }
 
             SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
             SpectralData lastFrame = m_audiofile.spectralDataContainer.get(i - 1);
@@ -155,20 +234,10 @@ public class Processor {
                 maxshift = sum;
             }
 
-            //System.out.println((i - 1) * m_audiofile.hopTime + "," + sum);
-            fftshift[i] = sum;
+            onsetDetectionFunction[i] = sum;
         }
-
-//        for (int i = 1; i < numSamples; i++) {
-//            fftshift[i] /= maxshift;
-//        }
-
-        // simple peak picking
-        Integer[] peaks = pickPeaksSimple(fftshift, 0.1);
-        for (int p : peaks) {
-            m_onsetList.add((p - 1) * m_audiofile.hopTime);
-        }
-
+        
+        return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
     }
 
     private Integer[] pickPeaksSimple(double[] data, double threshold) {
@@ -193,8 +262,8 @@ public class Processor {
 
     private Integer[] pickPeaksDixon(double[] data, final double delta, final double alpha) {
 
-        final int w = 10;
-        final int m = 10;
+        final int w = (int) (5000.0 * m_audiofile.hopTime);
+        final int m = (int) (5000.0 * m_audiofile.hopTime);
 
         double mean = mean(data);
         double stddev = stddev(data, mean);

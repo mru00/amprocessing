@@ -1,6 +1,6 @@
-TP: 0
-FP: 0
-FN: 100
-Precision: NaN
-Recall: 0.0
-F-Measure: NaN
+TP: 62
+FP: 15
+FN: 38
+Precision: 0.8051948051948052
+Recall: 0.62
+F-Measure: 0.7005649717514124
