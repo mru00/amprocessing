@@ -3,6 +3,9 @@
  *
  * This is the class where you can implement your onset detection / tempo extraction methods
  * Of course you may also define additional classes.
+ *
+ *
+ * most of the detection functions are taken from http://www.dafx.ca/proceedings/papers/p_133.pdf
  */
 package at.cp.jku.teaching.amprocessing;
 
@@ -25,12 +28,17 @@ public class Processor {
     // this variable should contain your result of the tempo estimation algorithm
     private double m_tempo;
     double[] onsetDetectionFunction;
+    final int algorithm;
 
-    public Processor(String filename) {
+    double pick_m = 500.0;
+    double pick_w = 5000.0;
+
+    public Processor(String filename, int algorithm) {
         Log.log("Initializing Processor...");
         m_filename = filename;
         m_onsetList = new LinkedList<Double>();
         m_onsetListFrames = new LinkedList<Integer>();
+        this.algorithm = algorithm;
 
         Log.log("Reading Audio-File " + filename);
         Log.log("Performing FFT...");
@@ -55,7 +63,7 @@ public class Processor {
         onsetDetectionFunction = new double[numSamples];
 
         Integer[] peaks;
-        switch (7) {
+        switch (algorithm) {
             case 1:
                 peaks = analyze_phase_deviation();
                 break;
@@ -92,7 +100,7 @@ public class Processor {
     }
 
     private Integer[] analyze_spectral_flux() {
-        // cmp http://www.dafx.ca/proceedings/papers/p_133.pdf
+
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
@@ -262,8 +270,8 @@ public class Processor {
 
     private Integer[] pickPeaksDixon(double[] data, final double delta, final double alpha) {
 
-        final int w = (int) (5000.0 * m_audiofile.hopTime);
-        final int m = (int) (5000.0 * m_audiofile.hopTime);
+        final int w = (int) (pick_w * m_audiofile.hopTime);
+        final int m = (int) (pick_m * m_audiofile.hopTime);
 
         double mean = mean(data);
         double stddev = stddev(data, mean);
