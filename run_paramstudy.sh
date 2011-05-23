@@ -1,5 +1,11 @@
 #! /bin/bash -e
 
+
+# mru, 2011-05
+# runs parameter study in parallel, MAX_NPROC processes at once
+#
+
+
 export CLASSPATH=build/classes:build/classes/jopt-simple.jar
 WAVS=data/*.wav
 

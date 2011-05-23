@@ -350,6 +350,7 @@ public class Processor {
     }
 
     private double vectDiff(double m1, double phi1, double m2, double phi2) {
+        /*
         double x1, y1, x2, y2;
         x1 = m1 * Math.cos(phi1);
         y1 = m1 * Math.sin(phi1);
@@ -357,6 +358,14 @@ public class Processor {
         y2 = m2 * Math.sin(phi2);
 
         return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+        */
+
+        /*
+         * http://en.wikipedia.org/wiki/Radial_distance_(geometry)
+         *
+         */
+        
+        return Math.sqrt(m1*m1 + m2*m2 - 2*m1*m2*Math.cos(phi1-phi2));
     }
 
     public void setup(int algorithm, int w, int m, double delta, double alpha) {
