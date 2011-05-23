@@ -6,12 +6,14 @@
  *
  *
  * most of the detection functions are taken from http://www.dafx.ca/proceedings/papers/p_133.pdf
+ *
+ *
+ * also interesting, but nothing implemented: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.60.9607&rep=rep1&type=pdf
  */
 package at.cp.jku.teaching.amprocessing;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Collections;
 
 /**
  *
@@ -29,9 +31,10 @@ public class Processor {
     private double m_tempo;
     double[] onsetDetectionFunction;
     final int algorithm;
-
-    double pick_m = 500.0;
-    double pick_w = 5000.0;
+    private int m = 3;
+    private int w = 3;
+    private double alpha = 0.0;
+    private double delta = .4;
 
     public Processor(String filename, int algorithm) {
         Log.log("Initializing Processor...");
@@ -61,8 +64,9 @@ public class Processor {
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
         onsetDetectionFunction = new double[numSamples];
+        m_onsetList.clear();
 
-        Integer[] peaks;
+        List<Integer> peaks;
         switch (algorithm) {
             case 1:
                 peaks = analyze_phase_deviation();
@@ -93,13 +97,9 @@ public class Processor {
         for (int p : peaks) {
             m_onsetList.add(p * m_audiofile.hopTime);
         }
-
-//        Collections.sort(m_onsetList);
-
-        System.out.println("found peaks: " + m_onsetList.size());
     }
 
-    private Integer[] analyze_spectral_flux() {
+    private List<Integer> analyze_spectral_flux() {
 
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
@@ -116,7 +116,7 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
-    private Integer[] analyze_phase_deviation() {
+    private List<Integer> analyze_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
@@ -134,7 +134,7 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
-    private Integer[] analyze_normalized_weighted_phase_deviation() {
+    private List<Integer> analyze_normalized_weighted_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
@@ -154,7 +154,7 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
-    private Integer[] analyze_weighted_phase_deviation() {
+    private List<Integer> analyze_weighted_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
@@ -172,7 +172,8 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
-    private Integer[] analyze_complex_domain() {
+    private List<Integer> analyze_complex_domain() {
+        // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
@@ -193,7 +194,8 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
     }
 
-    private Integer[] analyze_rectified_complex_domain() {
+    private List<Integer> analyze_rectified_complex_domain() {
+        // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int i = 0; i < numSamples; i++) {
@@ -216,7 +218,7 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
     }
 
-    private Integer[] analyze_fftshift() {
+    private List<Integer> analyze_fftshift() {
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
@@ -244,7 +246,7 @@ public class Processor {
 
             onsetDetectionFunction[i] = sum;
         }
-        
+
         return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
     }
 
@@ -268,22 +270,12 @@ public class Processor {
         return peaks.toArray(new Integer[peaks.size()]);
     }
 
-    private Integer[] pickPeaksDixon(double[] data, final double delta, final double alpha) {
-
-        final int w = (int) (pick_w * m_audiofile.hopTime);
-        final int m = (int) (pick_m * m_audiofile.hopTime);
+    private List<Integer> pickPeaksDixon(double[] data, double delta_, double alpha_) {
 
         double mean = mean(data);
         double stddev = stddev(data, mean);
         for (int i = 0; i < data.length; i++) {
             data[i] = (data[i] - mean) / stddev;
-        }
-
-        {
-            double mean1 = mean(data);
-            double stddev1 = stddev(data, mean1);
-            System.out.println("mean1:" + mean1);
-            System.out.println("stddev1:" + stddev1);
         }
 
         double ga;
@@ -293,38 +285,49 @@ public class Processor {
 
         // simple peak picking
         outer:
-        for (int n = w * m; n < data.length - w; n++) {
+        for (int n = w * m; n < data.length - (w + 1); n++) {
 
-            ga = ga_next;
-            ga_next = Math.max(data[n], alpha * ga + (1.0 - alpha) * data[n]);
+            if (alpha != Double.NaN) {
 
-            if (data[n] < ga) {
-                continue outer;
+                ga = ga_next;
+                ga_next = Math.max(data[n], alpha * ga + (1.0 - alpha) * data[n]);
+
+                if (alpha != Double.NaN && data[n] < ga) {
+                    continue outer;
+                }
+
             }
+
 
             inner:
             for (int k = n - w; k <= n + w; k++) {
-                if (k != n) {
+                // TODO: the case k <0 should be handled by the outer loop indizes
+                // the error occurs when m = 0;
+                if (k >= 0 && k != n) {
                     if (data[n] < data[k]) {
                         continue outer;
                     }
                 }
             }
 
-            double sum1 = 0.0;
-            for (int k = n - m * w; k <= n + w; k++) {
-                sum1 += data[k];
-            }
+            if (delta != Double.NaN) {
 
-            sum1 = delta + (sum1 / m * w + w + 1);
+                double sum1 = 0.0;
+                for (int k = n - m * w; k <= n + w; k++) {
+                    sum1 += data[k];
+                }
 
-            if (data[n] <= sum1) {
-                continue outer;
+                sum1 = delta + (sum1 / (m * w + w + 1));
+
+                if (data[n] < sum1) {
+                    continue outer;
+                }
+
             }
 
             peaks.add(n);
         }
-        return peaks.toArray(new Integer[peaks.size()]);
+        return peaks;
     }
 
     private double mean(double[] d) {
@@ -355,6 +358,13 @@ public class Processor {
         y2 = m2 * Math.sin(phi2);
 
         return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+    }
+
+    public void setupPicker(int w, int m, double delta, double alpha) {
+        this.w = w;
+        this.m = m;
+        this.delta = delta;
+        this.alpha = alpha;
     }
 
     public LinkedList<Double> getOnsets() {
