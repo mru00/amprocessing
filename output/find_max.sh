@@ -4,7 +4,7 @@
 #
 # prints the parameter set with the highest f-score
 
-for i in train*.onsets.paramstudy.eval; do 
+for i in train*.onsets.paramstudy.eval train*.onsets.paramstudy.?.eval; do 
 awk -f - $i <<"EOF"
 
 BEGIN { max = 0.0; }

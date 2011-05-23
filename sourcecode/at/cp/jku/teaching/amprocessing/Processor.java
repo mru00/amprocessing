@@ -30,18 +30,17 @@ public class Processor {
     // this variable should contain your result of the tempo estimation algorithm
     private double m_tempo;
     double[] onsetDetectionFunction;
-    final int algorithm;
+    private int algorithm;
     private int m = 3;
     private int w = 3;
     private double alpha = 0.0;
     private double delta = .4;
 
-    public Processor(String filename, int algorithm) {
+    public Processor(String filename) {
         Log.log("Initializing Processor...");
         m_filename = filename;
         m_onsetList = new LinkedList<Double>();
         m_onsetListFrames = new LinkedList<Integer>();
-        this.algorithm = algorithm;
 
         Log.log("Reading Audio-File " + filename);
         Log.log("Performing FFT...");
@@ -360,7 +359,8 @@ public class Processor {
         return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
     }
 
-    public void setupPicker(int w, int m, double delta, double alpha) {
+    public void setup(int algorithm, int w, int m, double delta, double alpha) {
+        this.algorithm = algorithm;
         this.w = w;
         this.m = m;
         this.delta = delta;

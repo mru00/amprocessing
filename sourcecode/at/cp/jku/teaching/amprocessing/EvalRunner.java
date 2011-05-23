@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -92,41 +93,52 @@ public class EvalRunner {
             hasTempoGroundTruth = true;
         }
 
-        Processor p = new Processor(wavFileName, 6);
+        Processor p = new Processor(wavFileName);
 
-        String onsetEvalOut = outputDirectory + shortWavFileName + ".onsets.paramstudy.eval";
-        String gnuplotcomment = "";
-        try {
-            FileWriter outputwriter = new FileWriter(onsetEvalOut);
+        for (int alg = 1; alg < 8; alg++) {
 
-            outputwriter.append(gnuplotcomment + "m w alpha delta TP FP FN PRECISION RECALL FMEASURE");
-            outputwriter.append('\n');
+            
 
-            for (int m = 2; m < 6; m += 1) {
-                for (int w = 2; w < 6; w += 1) {
-                    for (double delta = -1; delta < 1; delta += 0.1) {
-                        for (double alpha = 0; alpha < 1; alpha += 0.1) {
+            String onsetEvalOut = outputDirectory + shortWavFileName + ".onsets.paramstudy." + alg + ".eval";
+            String gnuplotcomment = "";
 
-                            p.setupPicker(m, w, delta, alpha);
+            System.out.println("detection for " + shortWavFileName + " alg: " + alg);
 
-                            p.analyze();
+            try {
+                FileWriter outputwriter = new FileWriter(onsetEvalOut);
 
-                            String paramString = m + " " + w + " " + alpha + " " + delta;
+                outputwriter.append(gnuplotcomment + "m w alpha delta TP FP FN PRECISION RECALL FMEASURE");
+                outputwriter.append('\n');
 
-                            String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName, onsetEvalOut);
+                for (int m = 2; m < 6; m += 1) {
+                    for (int w = 2; w < 6; w += 1) {
+                        for (double delta = 0; delta < 1; delta += 0.1) {
+                            for (double alpha = 0; alpha < 1; alpha += 0.1) {
 
-                            outputwriter.append(paramString + " " + evalResult);
-                            outputwriter.append('\n');
-                            outputwriter.flush();
-                            System.out.println(shortWavFileName + " " + paramString + " " + evalResult);
+                                p.setup(alg, m, w, delta, alpha);
+
+                                p.analyze();
+
+                                String paramString = m + " " + w + " " + alpha + " " + delta;
+
+                                String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName, onsetEvalOut);
+
+                                outputwriter.append(paramString + " " + evalResult);
+                                outputwriter.append('\n');
+                                outputwriter.flush();
+                                //System.out.println(shortWavFileName + " " + paramString + " " + evalResult);
+                                System.out.print(".");
+                            }
                         }
                     }
                 }
-            }
+                outputwriter.close();
 
-            outputwriter.close();
-        } catch (IOException ex) {
-            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
+                System.exit(1);
+            } finally {
+            }
         }
     }
 
@@ -141,7 +153,7 @@ public class EvalRunner {
             }
             outputwriter.close();
         } catch (IOException ex) {
-            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -156,7 +168,7 @@ public class EvalRunner {
             }
             outputwriter.close();
         } catch (IOException ex) {
-            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -170,12 +182,13 @@ public class EvalRunner {
             outputwriter.write(data + "\n");
             outputwriter.close();
         } catch (IOException ex) {
-            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }
-
+    private static LinkedList<Double> groundtruthOnsets_cache = null;
     // Evaluate the Onset Estimations
+
     private static String evaluateOnsets(LinkedList<Double> onsets, String onsetGroundTruthFileName, String onsetEvalOut) {
 
         int TP = 0;
@@ -185,19 +198,25 @@ public class EvalRunner {
         double recall = 0;
         double fmeasure = 0;
 
-        LinkedList<Double> groundtruthOnsets = new LinkedList<Double>();
 
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(onsetGroundTruthFileName));
-            String line;
+        
+        if (groundtruthOnsets_cache == null) {
+            groundtruthOnsets_cache = new LinkedList<Double>();
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(onsetGroundTruthFileName));
+                String line;
 
-            while ((line = reader.readLine()) != null) {
-                StringTokenizer st = new StringTokenizer(line);
-                groundtruthOnsets.add(Double.parseDouble(st.nextToken()));
+                while ((line = reader.readLine()) != null) {
+                    StringTokenizer st = new StringTokenizer(line);
+                    groundtruthOnsets_cache.add(Double.parseDouble(st.nextToken()));
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
+                System.exit(1);
             }
-        } catch (IOException ex) {
-            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
         }
+        List<Double> groundtruthOnsets = new LinkedList<Double>();
+        groundtruthOnsets.addAll(groundtruthOnsets_cache);
 
 //        Log.log(onsets.size());
 //        Log.log(groundtruthOnsets.size());
@@ -240,7 +259,7 @@ public class EvalRunner {
 
     }
 
-    private static double findNearest(double val, LinkedList<Double> list) {
+    private static double findNearest(double val, List<Double> list) {
         double minDist = Double.MAX_VALUE;
         double retval = 0;
 
@@ -274,7 +293,8 @@ public class EvalRunner {
                 gtempo = tempo2;
             }
         } catch (IOException ex) {
-            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
         }
 
         boolean correctTempo = false;
@@ -319,7 +339,7 @@ public class EvalRunner {
 
             outputwriter.close();
         } catch (IOException ex) {
-            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }
