@@ -102,28 +102,24 @@ public class EvalRunner {
             outputwriter.append(gnuplotcomment + "m w alpha delta TP FP FN PRECISION RECALL FMEASURE");
             outputwriter.append('\n');
 
-            for (int m = 3; m < 10; m += 1) {
-                for (int w = 3; w < 10; w += 1) {
+            for (int m = 2; m < 6; m += 1) {
+                for (int w = 2; w < 6; w += 1) {
                     for (double delta = -1; delta < 1; delta += 0.1) {
-                        //int delta = 0;
-//                        for (int alpha = 80; alpha < 100; alpha += 1) {
+                        for (double alpha = 0; alpha < 1; alpha += 0.1) {
 
+                            p.setupPicker(m, w, delta, alpha);
 
-                        double alpha = Double.NaN;
-                        p.setupPicker(m, w, delta, alpha);
+                            p.analyze();
 
-                        p.analyze();
+                            String paramString = m + " " + w + " " + alpha + " " + delta;
 
-                        String paramString = m + " " + w + " " + alpha + " " + delta;
+                            String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName, onsetEvalOut);
 
-                        String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName, onsetEvalOut);
-
-                        outputwriter.append(paramString + " " + evalResult);
-                        outputwriter.append('\n');
-                        outputwriter.flush();
-                        System.out.println(paramString + " " + evalResult);
-                        //                      }
-
+                            outputwriter.append(paramString + " " + evalResult);
+                            outputwriter.append('\n');
+                            outputwriter.flush();
+                            System.out.println(shortWavFileName + " " + paramString + " " + evalResult);
+                        }
                     }
                 }
             }
