@@ -1,0 +1,51 @@
+
+
+amprocessing
+
+= anpassungen
+
+der Runner wurde um:
+
+* -q .... quiet 
+* -p .... print onset-detection-function plot data
+
+erweitert
+
+
+EvalRunner wurde implementiert. Wird zum bestimmen der optimalen parameter verwendet.
+
+
+= evaluierung
+
+
+'run_paramstudy' probiert alle algorithmen & parametrisierungen aus. 
+im git sind im tag "first_eval" die ersten schritte dokumentiert.
+
+= tools
+
+== run_tests.sh
+
+run_tests fuehrt das programm aus
+
+== run_paramstudy.sh
+
+fuehrt die parameterstudie aus
+
+
+== output/find_max.sh
+
+nachdem 'run_paramstudy.sh' ausgefuehrt worden ist, kann dieses programm verwendet werden um die parameter mit den besten ergebnissen (f-score) auszugeben.
+
+== output/plot_paramstud.sh
+
+ruft gnuplot auf und macht einen plot mit allen parametern und den ergebnissen dazu
+
+
+= TODO
+
+evaluate algorithm (computational) performance, runtime
+
+fix algorithm "1"
+
+
+
