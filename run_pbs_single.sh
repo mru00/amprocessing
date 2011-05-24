@@ -1,7 +1,7 @@
 #! /bin/bash -e
 
 #PBS -N OnsetDetection
-#PBS -l np=1
+#PBS -l nodes=1:ppn=1
 #PBS -m be
 
 
