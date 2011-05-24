@@ -34,10 +34,10 @@ public class Processor {
     private double m_tempo;
     double[] onsetDetectionFunction;
     private int algorithm;
-    private int m = 3;
-    private int w = 3;
-    private double alpha = 0.0;
-    private double delta = .4;
+    private Integer m = null;
+    private Integer w = null;
+    private Double alpha = null;
+    private Double delta = null;
 
     public Processor(String filename) {
         Log.log("Initializing Processor...");
@@ -101,23 +101,7 @@ public class Processor {
         }
     }
 
-    private List<Integer> analyze_spectral_flux() {
-
-
-        final int numSamples = m_audiofile.spectralDataContainer.size();
-
-        for (int n = 0; n < numSamples; n++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
-            double acc = 0.0;
-            for (int k = 1; k < currentFrame.size; k++) {
-                acc += halfRect(abs(currentFrame.magnitudes[k]) - abs(currentFrame.magnitudes[k - 1]));
-            }
-            onsetDetectionFunction[n] = acc;
-        }
-
-        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
-    }
-
+    // alg 1
     private List<Integer> analyze_phase_deviation() {
         // TODO: this implementation is faulty, i think (unwrappedPhases ok?)
         final int numSamples = m_audiofile.spectralDataContainer.size();
@@ -134,48 +118,28 @@ public class Processor {
             onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
+        return pickPeaksDixon(onsetDetectionFunction, 0, 0, 0, 0);
     }
 
-    private List<Integer> analyze_normalized_weighted_phase_deviation() {
+    // alg 2
+    private List<Integer> analyze_spectral_flux() {
+
+
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 0; n < numSamples; n++) {
             final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
-            final double[] phi = currentFrame.unwrappedPhases;
-
-            double dphi_acc = 0.0;
-            double mag_acc = 0.0;
-            for (int k = 2; k < currentFrame.size; k++) {
-                double dphi2 = phi[k] + phi[k - 2] - 2 * phi[k - 1];
-                double X_n_k = currentFrame.magnitudes[k];
-                dphi_acc += abs(X_n_k * dphi2);
-                mag_acc += abs(X_n_k);
+            double acc = 0.0;
+            for (int k = 1; k < currentFrame.size; k++) {
+                acc += halfRect(abs(currentFrame.magnitudes[k]) - abs(currentFrame.magnitudes[k - 1]));
             }
-            onsetDetectionFunction[n] = dphi_acc / mag_acc;
+            onsetDetectionFunction[n] = acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.85, 0.45);
     }
 
-    private List<Integer> analyze_weighted_phase_deviation() {
-        final int numSamples = m_audiofile.spectralDataContainer.size();
-
-        for (int n = 0; n < numSamples; n++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
-            final double[] phi = currentFrame.unwrappedPhases;
-
-            double dphi_acc = 0.0;
-            for (int k = 2; k < currentFrame.size; k++) {
-                double dphi = phi[k] + phi[k - 2] - 2 * phi[k - 1];
-                dphi_acc += abs(currentFrame.magnitudes[k] * dphi);
-            }
-            onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
-        }
-
-        return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
-    }
-
+    // alg 3
     private List<Integer> analyze_complex_domain() {
         // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
@@ -195,9 +159,51 @@ public class Processor {
             onsetDetectionFunction[n] = deviation_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.8, 0.4);
+    }
+    // alg 4
+
+    private List<Integer> analyze_weighted_phase_deviation() {
+        final int numSamples = m_audiofile.spectralDataContainer.size();
+
+        for (int n = 0; n < numSamples; n++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+            final double[] phi = currentFrame.unwrappedPhases;
+
+            double dphi_acc = 0.0;
+            for (int k = 2; k < currentFrame.size; k++) {
+                double dphi = phi[k] + phi[k - 2] - 2 * phi[k - 1];
+                dphi_acc += abs(currentFrame.magnitudes[k] * dphi);
+            }
+            onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
+        }
+
+        return pickPeaksDixon(onsetDetectionFunction, 4, 5, 0.9, 0.2);
+    }
+    // alg 5
+
+    private List<Integer> analyze_normalized_weighted_phase_deviation() {
+        final int numSamples = m_audiofile.spectralDataContainer.size();
+
+        for (int n = 0; n < numSamples; n++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+            final double[] phi = currentFrame.unwrappedPhases;
+
+            double dphi_acc = 0.0;
+            double mag_acc = 0.0;
+            for (int k = 2; k < currentFrame.size; k++) {
+                double dphi2 = phi[k] + phi[k - 2] - 2 * phi[k - 1];
+                double X_n_k = currentFrame.magnitudes[k];
+                dphi_acc += abs(X_n_k * dphi2);
+                mag_acc += abs(X_n_k);
+            }
+            onsetDetectionFunction[n] = dphi_acc / mag_acc;
+        }
+
+        return pickPeaksDixon(onsetDetectionFunction, 5, 4, 0.9, 0);
     }
 
+    // alg 6
     private List<Integer> analyze_rectified_complex_domain() {
         // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
@@ -219,9 +225,10 @@ public class Processor {
             onsetDetectionFunction[n] = deviation_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.9, 0.6);
     }
 
+    // alg 7
     private List<Integer> analyze_frame_distance() {
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
@@ -251,7 +258,7 @@ public class Processor {
             onsetDetectionFunction[n] = sum;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.5, 0.3);
     }
 
     private Integer[] pickPeaksSimple(double[] data, double threshold) {
@@ -274,7 +281,22 @@ public class Processor {
         return peaks.toArray(new Integer[peaks.size()]);
     }
 
-    private List<Integer> pickPeaksDixon(double[] data, double delta_, double alpha_) {
+    private List<Integer> pickPeaksDixon(double[] data, int m, int w, double delta, double alpha) {
+
+        // this is needed for the parameter study
+        // if the member "delta" is set, override the given parameter
+        if (this.delta != null) {
+            delta = this.delta;
+        }
+        if (this.alpha != null) {
+            alpha = this.alpha;
+        }
+        if (this.w != null) {
+            w = this.w;
+        }
+        if (this.m != null) {
+            m = this.m;
+        }
 
         double mean = mean(data);
         double stddev = stddev(data, mean);
@@ -296,12 +318,10 @@ public class Processor {
                 ga = ga_next;
                 ga_next = max(data[n], alpha * ga + (1.0 - alpha) * data[n]);
 
-                if (alpha != Double.NaN && data[n] < ga) {
+                if (data[n] < ga) {
                     continue outer;
                 }
-
             }
-
 
             inner:
             for (int k = n - w; k <= n + w; k++) {
@@ -364,8 +384,10 @@ public class Processor {
         return sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
     }
 
-    public void setup(int algorithm, int w, int m, double delta, double alpha) {
-        this.algorithm = algorithm;
+    public void setup(Integer algorithm, Integer w, Integer m, Double delta, Double alpha) {
+        if (algorithm != null) {
+            this.algorithm = algorithm;
+        }
         this.w = w;
         this.m = m;
         this.delta = delta;

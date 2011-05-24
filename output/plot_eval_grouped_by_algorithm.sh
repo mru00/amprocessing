@@ -31,7 +31,7 @@ for(i=1; i<=7; i++){
 }
 
 EOF
-}  > grouped_by_alg.eval
+}  > grouped_by_alg_autotune.eval
 
 
 {
@@ -43,8 +43,9 @@ set style data histogram
 set style histogram clustered gap 5
 set style fill solid border -1
 set datafile missing "-"
-plot for [i=2:21] "grouped_by_alg.eval" u i t ""
+plot for [i=2:21] "grouped_by_alg_autotune.eval" u i t ""
 
 EOF
 
-} > eval_grouped_by_algorithm.png
+} > eval_grouped_by_algorithm_autotune.png
+

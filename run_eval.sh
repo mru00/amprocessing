@@ -49,7 +49,7 @@ trap 'for i in $QUEUE; do kill $i; done;' EXIT
 
 
 for f in data/*.wav; do
-  mainclass=at.cp.jku.teaching.amprocessing.ParamStudyRunner
+  mainclass=at.cp.jku.teaching.amprocessing.EvalRunner
   basename=$(basename $f .wav)
   java $mainclass -i $f -g data/$basename.onsets -t data/$basename.bpms -o output -p output/$basename.odf -q &
   	PID=$!
