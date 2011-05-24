@@ -1,0 +1,9 @@
+/data/train??.*
+/OnsetDetection.o*
+/OnsetDetection.e*
+/build/
+/__MACOSX/
+/dist/
+.DS_Store
+manifest.mf
+
