@@ -13,7 +13,7 @@
 
 export CLASSPATH=build/classes:build/classes/jopt-simple.jar
 
-f="data/train$(printf %02d $PBS_ARRAYID).wav"
+f="data/train$(printf %02d ${PBS_ARRAYID}).wav"
 
 cd ~/onset_detection
 

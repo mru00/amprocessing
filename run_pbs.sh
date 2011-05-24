@@ -4,6 +4,7 @@
 
 ant
 
-qsub -t 1:20 -d /home/mru/onset_detection /home/mru/onset_detection/run_pbs_single.sh
+BD=/media/co-resident/data/onset_detection
+qsub -t 1-20 -d $BD $BD/run_pbs_single.sh
 
 
