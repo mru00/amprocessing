@@ -16,6 +16,7 @@ package at.cp.jku.teaching.amprocessing;
 
 import java.util.LinkedList;
 import java.util.List;
+import static java.lang.Math.*;
 
 /**
  *
@@ -105,31 +106,32 @@ public class Processor {
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
-        for (int i = 0; i < numSamples; i++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+        for (int n = 0; n < numSamples; n++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
             double acc = 0.0;
-            for (int j = 1; j < currentFrame.size; j++) {
-                acc += halfRect(Math.abs(currentFrame.magnitudes[j]) - Math.abs(currentFrame.magnitudes[j - 1]));
+            for (int k = 1; k < currentFrame.size; k++) {
+                acc += halfRect(abs(currentFrame.magnitudes[k]) - abs(currentFrame.magnitudes[k - 1]));
             }
-            onsetDetectionFunction[i] = acc;
+            onsetDetectionFunction[n] = acc;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
     }
 
     private List<Integer> analyze_phase_deviation() {
+        // TODO: this implementation is faulty, i think (unwrappedPhases ok?)
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
-        for (int i = 0; i < numSamples; i++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+        for (int n = 0; n < numSamples; n++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
             final double[] phi = currentFrame.unwrappedPhases;
 
             double dphi_acc = 0.0;
-            for (int j = 2; j < currentFrame.size; j++) {
-                double dphi = phi[j] + phi[j - 2] - 2 * phi[j - 1];
-                dphi_acc += Math.abs(dphi);
+            for (int k = 2; k < currentFrame.size; k++) {
+                double dphi = phi[k] + phi[k - 2] - 2 * phi[k - 1];
+                dphi_acc += abs(dphi);
             }
-            onsetDetectionFunction[i] = dphi_acc / currentFrame.size;
+            onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
@@ -147,8 +149,8 @@ public class Processor {
             for (int k = 2; k < currentFrame.size; k++) {
                 double dphi2 = phi[k] + phi[k - 2] - 2 * phi[k - 1];
                 double X_n_k = currentFrame.magnitudes[k];
-                dphi_acc += Math.abs(X_n_k * dphi2);
-                mag_acc += Math.abs(X_n_k);
+                dphi_acc += abs(X_n_k * dphi2);
+                mag_acc += abs(X_n_k);
             }
             onsetDetectionFunction[n] = dphi_acc / mag_acc;
         }
@@ -159,16 +161,16 @@ public class Processor {
     private List<Integer> analyze_weighted_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
-        for (int i = 0; i < numSamples; i++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+        for (int n = 0; n < numSamples; n++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
             final double[] phi = currentFrame.unwrappedPhases;
 
             double dphi_acc = 0.0;
-            for (int j = 2; j < currentFrame.size; j++) {
-                double dphi = phi[j] + phi[j - 2] - 2 * phi[j - 1];
-                dphi_acc += Math.abs(currentFrame.magnitudes[j] * dphi);
+            for (int k = 2; k < currentFrame.size; k++) {
+                double dphi = phi[k] + phi[k - 2] - 2 * phi[k - 1];
+                dphi_acc += abs(currentFrame.magnitudes[k] * dphi);
             }
-            onsetDetectionFunction[i] = dphi_acc / currentFrame.size;
+            onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, -1000.0, 0.8);
@@ -178,19 +180,19 @@ public class Processor {
         // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
-        for (int i = 0; i < numSamples; i++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+        for (int n = 0; n < numSamples; n++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
             final double[] phi = currentFrame.unwrappedPhases;
 
             double deviation_acc = 0.0;
-            for (int j = 2; j < currentFrame.size; j++) {
+            for (int k = 2; k < currentFrame.size; k++) {
 
-                double phi_t = phi[j - 1] + (phi[j - 1] - phi[j - 2]);
-                double mag_t = currentFrame.magnitudes[j - 1];
+                double phi_t = phi[k - 1] + (phi[k - 1] - phi[k - 2]);
+                double mag_t = currentFrame.magnitudes[k - 1];
 
-                deviation_acc += radialDistance(currentFrame.magnitudes[j], phi[j], mag_t, phi_t);
+                deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, phi_t);
             }
-            onsetDetectionFunction[i] = deviation_acc;
+            onsetDetectionFunction[n] = deviation_acc;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
@@ -200,21 +202,21 @@ public class Processor {
         // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
-        for (int i = 0; i < numSamples; i++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
+        for (int n = 0; n < numSamples; n++) {
+            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
             final double[] phi = currentFrame.unwrappedPhases;
 
             double deviation_acc = 0.0;
-            for (int j = 2; j < currentFrame.size; j++) {
+            for (int k = 2; k < currentFrame.size; k++) {
 
-                double phi_t = phi[j - 1] + (phi[j - 1] - phi[j - 2]);
-                double mag_t = currentFrame.magnitudes[j - 1];
+                double phi_t = phi[k - 1] + (phi[k - 1] - phi[k - 2]);
+                double mag_t = currentFrame.magnitudes[k - 1];
 
-                if (currentFrame.magnitudes[j] >= currentFrame.magnitudes[j - 1]) {
-                    deviation_acc += radialDistance(currentFrame.magnitudes[j], phi[j], mag_t, phi_t);
+                if (currentFrame.magnitudes[k] >= currentFrame.magnitudes[k - 1]) {
+                    deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, phi_t);
                 }
             }
-            onsetDetectionFunction[i] = deviation_acc;
+            onsetDetectionFunction[n] = deviation_acc;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
@@ -226,17 +228,17 @@ public class Processor {
 
         double maxshift = Double.MIN_VALUE;
 
-        for (int i = 1; i < numSamples; i++) {
+        for (int n = 1; n < numSamples; n++) {
 
-            SpectralData currentFrame = m_audiofile.spectralDataContainer.get(i);
-            SpectralData lastFrame = m_audiofile.spectralDataContainer.get(i - 1);
+            SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+            SpectralData lastFrame = m_audiofile.spectralDataContainer.get(n - 1);
 
             double sum = 0.0;
-            for (int j = 0; j < currentFrame.size; j++) {
+            for (int k = 0; k < currentFrame.size; k++) {
                 // i assume currentFrame.size == lastFrame.size
 
-                double diff = radialDistance(currentFrame.magnitudes[j], currentFrame.unwrappedPhases[j], lastFrame.magnitudes[j], lastFrame.unwrappedPhases[j]);
-                sum += Math.abs(diff);
+                double diff = radialDistance(currentFrame.magnitudes[k], currentFrame.unwrappedPhases[k], lastFrame.magnitudes[k], lastFrame.unwrappedPhases[k]);
+                sum += abs(diff);
             }
 
             sum /= currentFrame.size;
@@ -246,7 +248,7 @@ public class Processor {
                 maxshift = sum;
             }
 
-            onsetDetectionFunction[i] = sum;
+            onsetDetectionFunction[n] = sum;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, -10000, 0.5);
@@ -256,16 +258,16 @@ public class Processor {
         List<Integer> peaks = new LinkedList<Integer>();
 
         // simple peak picking
-        for (int i = 1; i < data.length - 1; i++) {
+        for (int n = 1; n < data.length - 1; n++) {
 
             // possible peak
-            if (data[i] > threshold && data[i - 1] < data[i] && data[i] > data[i + 1]) {
+            if (data[n] > threshold && data[n - 1] < data[n] && data[n] > data[n + 1]) {
 
                 // TODO: find a way to remove the constant
                 // either filter the fftshift (matlab: filtfilt)
                 // or calculate something reasonable from hopTime
 
-                peaks.add(i);
+                peaks.add(n);
 
             }
         }
@@ -276,8 +278,8 @@ public class Processor {
 
         double mean = mean(data);
         double stddev = stddev(data, mean);
-        for (int i = 0; i < data.length; i++) {
-            data[i] = (data[i] - mean) / stddev;
+        for (int n = 0; n < data.length; n++) {
+            data[n] = (data[n] - mean) / stddev;
         }
 
         double ga;
@@ -292,7 +294,7 @@ public class Processor {
             if (alpha != Double.NaN) {
 
                 ga = ga_next;
-                ga_next = Math.max(data[n], alpha * ga + (1.0 - alpha) * data[n]);
+                ga_next = max(data[n], alpha * ga + (1.0 - alpha) * data[n]);
 
                 if (alpha != Double.NaN && data[n] < ga) {
                     continue outer;
@@ -343,13 +345,13 @@ public class Processor {
     private double stddev(double[] d, double mean) {
         double sum = 0.0;
         for (double e : d) {
-            sum += Math.pow(e - mean, 2);
+            sum += pow(e - mean, 2);
         }
-        return Math.sqrt(sum / d.length);
+        return sqrt(sum / d.length);
     }
 
     private double halfRect(double d) {
-        return (d + Math.abs(d)) / 2;
+        return (d + abs(d)) / 2;
     }
 
     private double radialDistance(double m1, double phi1, double m2, double phi2) {
@@ -359,7 +361,7 @@ public class Processor {
          *
          */
 
-        return Math.sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
+        return sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
     }
 
     public void setup(int algorithm, int w, int m, double delta, double alpha) {
@@ -376,55 +378,5 @@ public class Processor {
 
     public double getTempo() {
         return m_tempo;
-    }
-
-    // below from: http://java-gaming.org/index.php?topic=24191.0
-    public static final double sin(double rad) {
-        return sin[(int) (rad * radToIndex) & SIN_MASK];
-    }
-
-    public static final double cos(double rad) {
-        return cos[(int) (rad * radToIndex) & SIN_MASK];
-    }
-
-    public static final double sinDeg(double deg) {
-        return sin[(int) (deg * degToIndex) & SIN_MASK];
-    }
-
-    public static final double cosDeg(double deg) {
-        return cos[(int) (deg * degToIndex) & SIN_MASK];
-    }
-    private static final double RAD, DEG;
-    private static final int SIN_BITS, SIN_MASK, SIN_COUNT;
-    private static final double radFull, radToIndex;
-    private static final double degFull, degToIndex;
-    private static final double[] sin, cos;
-
-    static {
-        RAD = (double) Math.PI / 180.0f;
-        DEG = 180.0f / (double) Math.PI;
-
-        SIN_BITS = 12;
-        SIN_MASK = ~(-1 << SIN_BITS);
-        SIN_COUNT = SIN_MASK + 1;
-
-        radFull = (double) (Math.PI * 2.0);
-        degFull = (double) (360.0);
-        radToIndex = SIN_COUNT / radFull;
-        degToIndex = SIN_COUNT / degFull;
-
-        sin = new double[SIN_COUNT];
-        cos = new double[SIN_COUNT];
-
-        for (int i = 0; i < SIN_COUNT; i++) {
-            sin[i] = (double) Math.sin((i + 0.5f) / SIN_COUNT * radFull);
-            cos[i] = (double) Math.cos((i + 0.5f) / SIN_COUNT * radFull);
-        }
-
-        // Four cardinal directions (credits: Nate)
-        for (int i = 0; i < 360; i += 90) {
-            sin[(int) (i * degToIndex) & SIN_MASK] = (double) Math.sin(i * Math.PI / 180.0);
-            cos[(int) (i * degToIndex) & SIN_MASK] = (double) Math.cos(i * Math.PI / 180.0);
-        }
     }
 }

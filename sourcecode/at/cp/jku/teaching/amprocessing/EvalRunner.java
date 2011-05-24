@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,7 +19,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 /**
  * @author andreas arzt
@@ -112,7 +110,7 @@ public class EvalRunner {
 
                 for (int m = 2; m < 6; m += 1) {
                     for (int w = 2; w < 6; w += 1) {
-                        for (double delta = 0; delta < 1; delta += 0.1) {
+                        for (double delta = -1; delta < 1; delta += 0.1) {
                             for (double alpha = 0; alpha < 1; alpha += 0.1) {
 
                                 p.setup(alg, m, w, delta, alpha);
@@ -142,50 +140,7 @@ public class EvalRunner {
         }
     }
 
-    /*
-     * Simple Fileout Method for LinkedList<Double>
-     */
-    private static void writeDataToFile(List<Double> data, String filename) {
-        try {
-            FileWriter outputwriter = new FileWriter(filename);
-            for (Double d : data) {
-                outputwriter.write(d + "\n");
-            }
-            outputwriter.close();
-        } catch (IOException ex) {
-            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
 
-    private static void writeDataToFile(double[] data, double hoptime, String filename) {
-        try {
-            FileWriter outputwriter = new FileWriter(filename);
-            int i = 0;
-            for (Double d : data) {
-                outputwriter.write(i * hoptime + " ");
-                outputwriter.write(d + "\n");
-                i++;
-            }
-            outputwriter.close();
-        } catch (IOException ex) {
-            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-
-    /*
-     * Simple Fileout Method for a single double (the tempo...)
-     */
-    private static void writeDataToFile(double data, String filename) {
-        try {
-            FileWriter outputwriter = new FileWriter(filename);
-            outputwriter.write(data + "\n");
-            outputwriter.close();
-        } catch (IOException ex) {
-            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-    }
     private static LinkedList<Double> groundtruthOnsets_cache = null;
     // Evaluate the Onset Estimations
 
