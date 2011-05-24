@@ -5,18 +5,20 @@
  * Of course you may also define additional classes.
  *
  *
- * most of the detection functions are taken from http://www.dafx.ca/proceedings/papers/p_133.pdf
+ * most of the detection functions are taken from [1] 
  *
+ * also interesting, but nothing implemented: [3]
  *
- * also interesting, but nothing implemented: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.60.9607&rep=rep1&type=pdf
- *
- * http://java-gaming.org/index.php?topic=24191.0
+ * [1] http://www.dafx.ca/proceedings/papers/p_133.pdf
+ * [2] http://java-gaming.org/index.php?topic=24191.0
+ * [3] http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.60.9607&rep=rep1&type=pdf
  */
 package at.cp.jku.teaching.amprocessing;
 
 import java.util.LinkedList;
 import java.util.List;
 import static java.lang.Math.*;
+import static at.cp.jku.teaching.amprocessing.SpectralData.normalizeAngle;
 
 /**
  *
@@ -173,7 +175,7 @@ public class Processor {
 
                 double mag_t = currentFrame.magnitudes[k - 1];
 
-                deviation_acc += radialDistance(currentFrame.magnitudes[k], normalizeAngle(phi[k]), mag_t, d2phi(phi, k));
+                deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, d2phi(phi, k));
             }
             onsetDetectionFunction[n] = deviation_acc;
         }
@@ -236,7 +238,7 @@ public class Processor {
                 double mag_t = currentFrame.magnitudes[k - 1];
 
                 if (currentFrame.magnitudes[k] >= currentFrame.magnitudes[k - 1]) {
-                    deviation_acc += radialDistance(currentFrame.magnitudes[k], normalizeAngle(phi[k]), mag_t, phi_t);
+                    deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, phi_t);
                 }
             }
             onsetDetectionFunction[n] = deviation_acc;
@@ -254,12 +256,13 @@ public class Processor {
 
             SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
             SpectralData lastFrame = m_audiofile.spectralDataContainer.get(n - 1);
+            final double[] phi = currentFrame.unwrappedPhases;
 
             double sum = 0.0;
             for (int k = 0; k < currentFrame.size; k++) {
                 // i assume currentFrame.size == lastFrame.size
 
-                double diff = radialDistance(currentFrame.magnitudes[k], normalizeAngle(currentFrame.unwrappedPhases[k]), lastFrame.magnitudes[k], normalizeAngle(lastFrame.unwrappedPhases[k]));
+                double diff = radialDistance(currentFrame.magnitudes[k], phi[k], lastFrame.magnitudes[k], phi[k]);
                 sum += abs(diff);
             }
 
@@ -271,6 +274,12 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.3, 0.5);
     }
 
+    /**
+     * naive peak picking
+     * @param data
+     * @param threshold
+     * @return
+     */
     private Integer[] pickPeaksSimple(double[] data, double threshold) {
         List<Integer> peaks = new LinkedList<Integer>();
 
@@ -291,6 +300,15 @@ public class Processor {
         return peaks.toArray(new Integer[peaks.size()]);
     }
 
+    /**
+     * peak picking as described in [1]
+     * @param data
+     * @param m
+     * @param w
+     * @param alpha
+     * @param delta
+     * @return
+     */
     private List<Integer> pickPeaksDixon(double[] data, int m, int w, double alpha, double delta) {
 
         // this is needed for the parameter study
@@ -363,13 +381,25 @@ public class Processor {
         return peaks;
     }
 
-    private double d2phi(double[] phi, int k) {
-        double dphi11 = normalizeAngle(normalizeAngle(phi[k]) + normalizeAngle(phi[k - 1]));
-        double dphi12 = normalizeAngle(normalizeAngle(phi[k - 1]) + normalizeAngle(phi[k - 2]));
-        return normalizeAngle(dphi11 - dphi12);
+    /**
+     * second derivative of phi
+     * @param phi
+     * @param k
+     * @return
+     */
+    private double d2phi(final double[] phi, final int k) {
+        // angles in phi must be normalized; fft results in normalzied angles
+        double dphi11 = normalizeAngle(phi[k-1], phi[k]) - phi[k];
+        double dphi12 = normalizeAngle(phi[k - 2],phi[k - 1]) - phi[k-1];
+        return normalizeAngle(dphi12, dphi11) - dphi11;
     }
 
-    private double mean(double[] d) {
+    /**
+     * mean of array
+     * @param d
+     * @return
+     */
+    private double mean(final double[] d) {
         double sum = 0.0;
         for (double e : d) {
             sum += e;
@@ -377,7 +407,13 @@ public class Processor {
         return sum / d.length;
     }
 
-    private double stddev(double[] d, double mean) {
+    /**
+     * standard deviation
+     * @param d
+     * @param mean
+     * @return
+     */
+    private double stddev(final double[] d, final double mean) {
         double sum = 0.0;
         for (double e : d) {
             sum += pow(e - mean, 2);
@@ -385,20 +421,11 @@ public class Processor {
         return sqrt(sum / d.length);
     }
 
-    private double halfRect(double d) {
+    private double halfRect(final double d) {
         return (d + abs(d)) / 2;
     }
-    private static final double TWO_PI = 2 * Math.PI;
 
-    private static double normalizeAngle(double a) {
-        return normalizeAngle(a, 0.0);
-    }
-
-    private static double normalizeAngle(double a, double center) {
-        return a - TWO_PI * Math.floor((a + Math.PI - center) / TWO_PI);
-    }
-
-    private double radialDistance(double m1, double phi1, double m2, double phi2) {
+    private double radialDistance(final double m1, final double phi1, final double m2, final double phi2) {
         //  http://en.wikipedia.org/wiki/Radial_distance_(geometry)
         return sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
     }

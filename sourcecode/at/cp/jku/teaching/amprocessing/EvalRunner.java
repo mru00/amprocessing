@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -179,16 +181,18 @@ public class EvalRunner {
         sb.append(" ");
         sb.append(FN);
         sb.append(" ");
-        sb.append(precision);
+        sb.append(fd.format(precision));
         sb.append(" ");
-        sb.append(recall);
+        sb.append(fd.format(recall));
         sb.append(" ");
-        sb.append(fmeasure);
+        sb.append(fd.format(fmeasure));
 
         EvalRunner.m_fmeasure = fmeasure;
         return sb.toString();
 
     }
+
+    private static NumberFormat fd = new DecimalFormat("#.###");
 
     private static double findNearest(double val, List<Double> list) {
         double minDist = Double.MAX_VALUE;

@@ -49,16 +49,31 @@ public class SpectralData {
                 dps = Math.PI;
             }
             if (Math.abs(dp) >= cutoff) {
-                unwrappedPhases[i] += (dps-dp);
+                unwrappedPhases[i] += (dps - dp);
             }
         }
     }
 
-    private double normphase(double ph) {
+    public static double normphase(final double ph) {
         return myfmod(ph + Math.PI, 2 * Math.PI) - Math.PI;
     }
 
-    private double myfmod(double x, double y) {
+    public static double myfmod(final double x, final double y) {
         return x - y * Math.floor(x / y);
+    }
+
+
+
+    /**
+     * the following code is from:
+     * http://www.java2s.com/Tutorial/Java/0120__Development/Normalizeanangleina2piwideintervalaroundacentervalue.htm
+     * 
+     * and much faster!
+     */
+
+    private static final double TWO_PI = 2 * Math.PI;
+
+    public static double normalizeAngle(final double a, final double center) {
+        return a - TWO_PI * Math.floor((a + Math.PI - center) / TWO_PI);
     }
 }

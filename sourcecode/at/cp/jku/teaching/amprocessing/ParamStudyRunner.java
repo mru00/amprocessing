@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -95,7 +97,7 @@ public class ParamStudyRunner {
 
         for (int alg = 1; alg < 8; alg++) {
 
-            
+
 
             String onsetEvalOut = outputDirectory + shortWavFileName + ".onsets.paramstudy." + alg + ".eval";
             String gnuplotcomment = "";
@@ -117,7 +119,7 @@ public class ParamStudyRunner {
 
                                 p.analyze();
 
-                                String paramString = m + " " + w + " " + alpha + " " + delta;
+                                String paramString = m + " " + w + " " + fd.format(alpha) + " " + fd.format(delta);
 
                                 String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName);
 
@@ -138,8 +140,7 @@ public class ParamStudyRunner {
             }
         }
     }
-
-
+    private static NumberFormat fd = new DecimalFormat("#.###");
     private static LinkedList<Double> groundtruthOnsets_cache = null;
     // Evaluate the Onset Estimations
 
@@ -153,7 +154,7 @@ public class ParamStudyRunner {
         double fmeasure = 0;
 
 
-        
+
         if (groundtruthOnsets_cache == null) {
             groundtruthOnsets_cache = new LinkedList<Double>();
             try {
@@ -194,7 +195,16 @@ public class ParamStudyRunner {
 
         precision = (double) TP / (TP + FP);
         recall = (double) TP / (TP + FN);
+        if (precision == Double.NaN) {
+            precision = 0;
+        }
+        if (recall == Double.NaN) {
+            recall = 0;
+        }
         fmeasure = (2 * precision * recall) / (precision + recall);
+        if (fmeasure == Double.NaN) {
+            fmeasure = 0;
+        }
 
         StringBuilder sb = new StringBuilder();
         sb.append(TP);
@@ -203,11 +213,11 @@ public class ParamStudyRunner {
         sb.append(" ");
         sb.append(FN);
         sb.append(" ");
-        sb.append(precision);
+        sb.append(fd.format(precision));
         sb.append(" ");
-        sb.append(recall);
+        sb.append(fd.format(recall));
         sb.append(" ");
-        sb.append(fmeasure);
+        sb.append(fd.format(fmeasure));
 
         return sb.toString();
 
