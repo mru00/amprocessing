@@ -112,7 +112,7 @@ public class ParamStudyRunner {
 
                 for (int m = 2; m < 6; m += 1) {
                     for (int w = 2; w < 6; w += 1) {
-                        for (double delta = -1; delta < 1; delta += 0.1) {
+                        for (double delta = -0.1; delta < 1; delta += 0.1) {
                             for (double alpha = 0; alpha < 1; alpha += 0.1) {
 
                                 p.setup(alg, m, w, alpha, delta);

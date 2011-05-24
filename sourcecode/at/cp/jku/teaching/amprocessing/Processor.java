@@ -94,25 +94,25 @@ public class Processor {
         List<Integer> peaks;
         switch (algorithm) {
             case 1:
-                peaks = analyze_phase_deviation();
+                peaks = odf_phase_deviation();
                 break;
             case 2:
-                peaks = analyze_spectral_flux();
+                peaks = odf_spectral_flux();
                 break;
             case 3:
-                peaks = analyze_complex_domain();
+                peaks = odf_complex_domain();
                 break;
             case 4:
-                peaks = analyze_weighted_phase_deviation();
+                peaks = odf_weighted_phase_deviation();
                 break;
             case 5:
-                peaks = analyze_normalized_weighted_phase_deviation();
+                peaks = odf_normalized_weighted_phase_deviation();
                 break;
             case 6:
-                peaks = analyze_rectified_complex_domain();
+                peaks = odf_rectified_complex_domain();
                 break;
             case 7:
-                peaks = analyze_frame_distance();
+                peaks = odf_frame_distance();
                 break;
             default:
                 peaks = null;
@@ -125,7 +125,7 @@ public class Processor {
     }
 
     // alg 1
-    private List<Integer> analyze_phase_deviation() {
+    private List<Integer> odf_phase_deviation() {
         // TODO: this implementation is faulty, i think (unwrappedPhases ok?)
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
@@ -144,7 +144,7 @@ public class Processor {
     }
 
     // alg 2
-    private List<Integer> analyze_spectral_flux() {
+    private List<Integer> odf_spectral_flux() {
 
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
@@ -162,7 +162,7 @@ public class Processor {
     }
 
     // alg 3
-    private List<Integer> analyze_complex_domain() {
+    private List<Integer> odf_complex_domain() {
         // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
@@ -175,7 +175,7 @@ public class Processor {
 
                 double mag_t = currentFrame.magnitudes[k - 1];
 
-                deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, d2phi(phi, k));
+                deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, normalizeAngle(phi[k-1] + dphi(phi, k-1), 0.0));
             }
             onsetDetectionFunction[n] = deviation_acc;
         }
@@ -184,7 +184,7 @@ public class Processor {
     }
     // alg 4
 
-    private List<Integer> analyze_weighted_phase_deviation() {
+    private List<Integer> odf_weighted_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 0; n < numSamples; n++) {
@@ -202,7 +202,7 @@ public class Processor {
     }
     // alg 5
 
-    private List<Integer> analyze_normalized_weighted_phase_deviation() {
+    private List<Integer> odf_normalized_weighted_phase_deviation() {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 0; n < numSamples; n++) {
@@ -223,7 +223,7 @@ public class Processor {
     }
 
     // alg 6
-    private List<Integer> analyze_rectified_complex_domain() {
+    private List<Integer> odf_rectified_complex_domain() {
         // from dixon, implementation: confident
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
@@ -248,7 +248,7 @@ public class Processor {
     }
 
     // alg 7
-    private List<Integer> analyze_frame_distance() {
+    private List<Integer> odf_frame_distance() {
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
@@ -301,6 +301,20 @@ public class Processor {
     }
 
     /**
+     * normalize the array values such that:
+     * mean(data) = 0
+     * stddev(data) = 1
+     * @param data
+     */
+    private void normalizeArray(final double[] data){
+        double mean = mean(data);
+        double stddev = stddev(data, mean);
+        for (int n = 0; n < data.length; n++) {
+            data[n] = (data[n] - mean) / stddev;
+        }
+    }
+
+    /**
      * peak picking as described in [1]
      * @param data
      * @param m
@@ -328,11 +342,7 @@ public class Processor {
             m = this.setup_m;
         }
 
-        double mean = mean(data);
-        double stddev = stddev(data, mean);
-        for (int n = 0; n < data.length; n++) {
-            data[n] = (data[n] - mean) / stddev;
-        }
+        normalizeArray(data);
 
         double ga;
         double ga_next = Double.MIN_VALUE;
@@ -381,6 +391,11 @@ public class Processor {
         return peaks;
     }
 
+
+    private double dphi(final double[] phi, final int k) {
+        return normalizeAngle(phi[k-1], phi[k]) - phi[k];
+    }
+
     /**
      * second derivative of phi
      * @param phi
@@ -389,9 +404,10 @@ public class Processor {
      */
     private double d2phi(final double[] phi, final int k) {
         // angles in phi must be normalized; fft results in normalzied angles
-        double dphi11 = normalizeAngle(phi[k-1], phi[k]) - phi[k];
-        double dphi12 = normalizeAngle(phi[k - 2],phi[k - 1]) - phi[k-1];
-        return normalizeAngle(dphi12, dphi11) - dphi11;
+        final double dphi1 = dphi(phi, k);
+        final double dphi2 = dphi(phi, k-1);
+        return normalizeAngle(dphi2, dphi1) - dphi1;
+
     }
 
     /**
