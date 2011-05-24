@@ -19,3 +19,5 @@ cd ~/onset_detection
 mainclass=at.cp.jku.teaching.amprocessing.ParamStudyRunner
 basename=$(basename $f .wav)
 java $mainclass -i $f -g data/$basename.onsets -t data/$basename.bpms -o output -p output/$basename.odf -q
+
+
