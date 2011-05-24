@@ -113,18 +113,17 @@ public class ParamStudyRunner {
                         for (double delta = -1; delta < 1; delta += 0.1) {
                             for (double alpha = 0; alpha < 1; alpha += 0.1) {
 
-                                p.setup(alg, m, w, delta, alpha);
+                                p.setup(alg, m, w, alpha, delta);
 
                                 p.analyze();
 
                                 String paramString = m + " " + w + " " + alpha + " " + delta;
 
-                                String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName, onsetEvalOut);
+                                String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName);
 
                                 outputwriter.append(paramString + " " + evalResult);
                                 outputwriter.append('\n');
                                 outputwriter.flush();
-                                //System.out.println(shortWavFileName + " " + paramString + " " + evalResult);
                                 System.out.print(".");
                             }
                         }
@@ -144,7 +143,7 @@ public class ParamStudyRunner {
     private static LinkedList<Double> groundtruthOnsets_cache = null;
     // Evaluate the Onset Estimations
 
-    private static String evaluateOnsets(LinkedList<Double> onsets, String onsetGroundTruthFileName, String onsetEvalOut) {
+    private static String evaluateOnsets(LinkedList<Double> onsets, String onsetGroundTruthFileName) {
 
         int TP = 0;
         int FP = 0;

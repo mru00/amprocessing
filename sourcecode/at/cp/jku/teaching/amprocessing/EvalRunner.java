@@ -37,13 +37,7 @@ public class EvalRunner {
         String wavFileName = new String();
         String shortWavFileName = new String();
         String outputDirectory = new String();
-        String outputOnsetsFileName = new String();
-        String outputTempoFileName = new String();
         String onsetGroundTruthFileName = new String();
-        String tempoGroundTruthFileName = new String();
-        String plotFileName = null;
-        boolean hasOnsetGroundTruth = false;
-        boolean hasTempoGroundTruth = false;
 
         OptionParser parser = new OptionParser("qi:o:g:t:p:");
         OptionSet options = parser.parse(args);
@@ -78,18 +72,12 @@ public class EvalRunner {
         }
 
         shortWavFileName = wavFileName.substring(wavFileName.lastIndexOf("/") + 1, wavFileName.lastIndexOf("."));
-        outputOnsetsFileName = outputDirectory + shortWavFileName + ".onsets";
-        outputTempoFileName = outputDirectory + shortWavFileName + ".tempo";
 
         if (options.has("g")) {
             onsetGroundTruthFileName = options.valueOf("g").toString();
-            hasOnsetGroundTruth = true;
+            loadGroundTruth(onsetGroundTruthFileName);
         }
 
-        if (options.has("t")) {
-            tempoGroundTruthFileName = options.valueOf("t").toString();
-            hasTempoGroundTruth = true;
-        }
 
         Processor p = new Processor(wavFileName);
 
@@ -98,26 +86,25 @@ public class EvalRunner {
         String gnuplotcomment = "";
 
 
+
         try {
             FileWriter outputwriter = new FileWriter(onsetEvalOut);
 
-            outputwriter.append(gnuplotcomment + "alg m w alpha delta TP FP FN PRECISION RECALL FMEASURE");
+            outputwriter.append(gnuplotcomment + "alg TP FP FN PRECISION RECALL FMEASURE");
             outputwriter.append('\n');
 
             for (int alg = 1; alg < 8; alg++) {
 
-
-                System.out.println("detection for " + shortWavFileName + " alg: " + alg);
-
+                // pass all null-values: don't override the defaults of the algorithm
                 p.setup(alg, null, null, null, null);
 
                 p.analyze();
 
-                String evalResult = evaluateOnsets(p.getOnsets(), onsetGroundTruthFileName, onsetEvalOut);
+                String evalResult = evaluateOnsets(p.getOnsets());
 
+                System.out.println("detection for " + shortWavFileName + " alg: " + alg + " -> " + m_fmeasure);
                 outputwriter.append(alg + " " + evalResult);
                 outputwriter.append('\n');
-                outputwriter.flush();
             }
             outputwriter.close();
 
@@ -128,10 +115,28 @@ public class EvalRunner {
         }
 
     }
+    // read the groundtruth only once
     private static LinkedList<Double> groundtruthOnsets_cache = null;
-    // Evaluate the Onset Estimations
+    private static double m_fmeasure = 0.0;
 
-    private static String evaluateOnsets(LinkedList<Double> onsets, String onsetGroundTruthFileName, String onsetEvalOut) {
+    private static void loadGroundTruth(String onsetGroundTruthFileName) {
+        groundtruthOnsets_cache = new LinkedList<Double>();
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(onsetGroundTruthFileName));
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                StringTokenizer st = new StringTokenizer(line);
+                groundtruthOnsets_cache.add(Double.parseDouble(st.nextToken()));
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
+    }
+
+    // Evaluate the Onset Estimations
+    private static String evaluateOnsets(LinkedList<Double> onsets) {
 
         int TP = 0;
         int FP = 0;
@@ -140,23 +145,6 @@ public class EvalRunner {
         double recall = 0;
         double fmeasure = 0;
 
-
-
-        if (groundtruthOnsets_cache == null) {
-            groundtruthOnsets_cache = new LinkedList<Double>();
-            try {
-                BufferedReader reader = new BufferedReader(new FileReader(onsetGroundTruthFileName));
-                String line;
-
-                while ((line = reader.readLine()) != null) {
-                    StringTokenizer st = new StringTokenizer(line);
-                    groundtruthOnsets_cache.add(Double.parseDouble(st.nextToken()));
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(EvalRunner.class.getName()).log(Level.SEVERE, null, ex);
-                System.exit(1);
-            }
-        }
         List<Double> groundtruthOnsets = new LinkedList<Double>();
         groundtruthOnsets.addAll(groundtruthOnsets_cache);
 
@@ -197,6 +185,7 @@ public class EvalRunner {
         sb.append(" ");
         sb.append(fmeasure);
 
+        EvalRunner.m_fmeasure = fmeasure;
         return sb.toString();
 
     }

@@ -34,10 +34,15 @@ public class Processor {
     private double m_tempo;
     double[] onsetDetectionFunction;
     private int algorithm;
-    private Integer m = null;
-    private Integer w = null;
-    private Double alpha = null;
-    private Double delta = null;
+    private Integer setup_m = null;
+    private Integer setup_w = null;
+    private Double setup_alpha = null;
+    private Double setup_delta = null;
+
+    public Processor(String filename, int algorithm) {
+        this(filename);
+        this.algorithm = algorithm;
+    }
 
     public Processor(String filename) {
         Log.log("Initializing Processor...");
@@ -65,14 +70,14 @@ public class Processor {
      * when this.{m,w,alpha,delta} is not equal null, peakpicker will use 
      * the member's values instead of the values supplied by the algorithms.
      */
-    public void setup(Integer algorithm, Integer w, Integer m, Double delta, Double alpha) {
+    public void setup(Integer algorithm, Integer w, Integer m, Double alpha, Double delta) {
         if (algorithm != null) {
             this.algorithm = algorithm;
         }
-        this.w = w;
-        this.m = m;
-        this.delta = delta;
-        this.alpha = alpha;
+        this.setup_w = w;
+        this.setup_m = m;
+        this.setup_delta = delta;
+        this.setup_alpha = alpha;
     }
 
     // This method is called from the Runner and is the starting point of your onset detection / tempo extraction code
@@ -128,8 +133,7 @@ public class Processor {
 
             double dphi_acc = 0.0;
             for (int k = 2; k < currentFrame.size; k++) {
-                double dphi = phi[k] + phi[k - 2] - 2 * phi[k - 1];
-                dphi_acc += abs(dphi);
+                dphi_acc += abs(d2phi(phi, k));
             }
             onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
         }
@@ -152,7 +156,7 @@ public class Processor {
             onsetDetectionFunction[n] = acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.85, 0.45);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.45, 0.85);
     }
 
     // alg 3
@@ -167,15 +171,14 @@ public class Processor {
             double deviation_acc = 0.0;
             for (int k = 2; k < currentFrame.size; k++) {
 
-                double phi_t = phi[k - 1] + (phi[k - 1] - phi[k - 2]);
                 double mag_t = currentFrame.magnitudes[k - 1];
 
-                deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, phi_t);
+                deviation_acc += radialDistance(currentFrame.magnitudes[k], normalizeAngle(phi[k]), mag_t, d2phi(phi, k));
             }
             onsetDetectionFunction[n] = deviation_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.8, 0.4);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.4, 0.8);
     }
     // alg 4
 
@@ -188,13 +191,12 @@ public class Processor {
 
             double dphi_acc = 0.0;
             for (int k = 2; k < currentFrame.size; k++) {
-                double dphi = phi[k] + phi[k - 2] - 2 * phi[k - 1];
-                dphi_acc += abs(currentFrame.magnitudes[k] * dphi);
+                dphi_acc += abs(currentFrame.magnitudes[k] * d2phi(phi, k));
             }
             onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 4, 5, 0.9, 0.2);
+        return pickPeaksDixon(onsetDetectionFunction, 4, 5, 0.2, 0.9);
     }
     // alg 5
 
@@ -208,15 +210,14 @@ public class Processor {
             double dphi_acc = 0.0;
             double mag_acc = 0.0;
             for (int k = 2; k < currentFrame.size; k++) {
-                double dphi2 = phi[k] + phi[k - 2] - 2 * phi[k - 1];
                 double X_n_k = currentFrame.magnitudes[k];
-                dphi_acc += abs(X_n_k * dphi2);
+                dphi_acc += abs(X_n_k * d2phi(phi, k));
                 mag_acc += abs(X_n_k);
             }
             onsetDetectionFunction[n] = dphi_acc / mag_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 4, 5, 0.9, 0.2);
+        return pickPeaksDixon(onsetDetectionFunction, 5, 2, 0.0, 0.9);
     }
 
     // alg 6
@@ -231,25 +232,23 @@ public class Processor {
             double deviation_acc = 0.0;
             for (int k = 2; k < currentFrame.size; k++) {
 
-                double phi_t = phi[k - 1] + (phi[k - 1] - phi[k - 2]);
+                double phi_t = d2phi(phi, k);
                 double mag_t = currentFrame.magnitudes[k - 1];
 
                 if (currentFrame.magnitudes[k] >= currentFrame.magnitudes[k - 1]) {
-                    deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], mag_t, phi_t);
+                    deviation_acc += radialDistance(currentFrame.magnitudes[k], normalizeAngle(phi[k]), mag_t, phi_t);
                 }
             }
             onsetDetectionFunction[n] = deviation_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.9, 0.6);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.6, 0.9);
     }
 
     // alg 7
     private List<Integer> analyze_frame_distance() {
 
         final int numSamples = m_audiofile.spectralDataContainer.size();
-
-        double maxshift = Double.MIN_VALUE;
 
         for (int n = 1; n < numSamples; n++) {
 
@@ -260,21 +259,16 @@ public class Processor {
             for (int k = 0; k < currentFrame.size; k++) {
                 // i assume currentFrame.size == lastFrame.size
 
-                double diff = radialDistance(currentFrame.magnitudes[k], currentFrame.unwrappedPhases[k], lastFrame.magnitudes[k], lastFrame.unwrappedPhases[k]);
+                double diff = radialDistance(currentFrame.magnitudes[k], normalizeAngle(currentFrame.unwrappedPhases[k]), lastFrame.magnitudes[k], normalizeAngle(lastFrame.unwrappedPhases[k]));
                 sum += abs(diff);
             }
 
-            sum /= currentFrame.size;
-
-
-            if (sum > maxshift) {
-                maxshift = sum;
-            }
+            //sum /= currentFrame.size;
 
             onsetDetectionFunction[n] = sum;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.5, 0.3);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.3, 0.5);
     }
 
     private Integer[] pickPeaksSimple(double[] data, double threshold) {
@@ -297,23 +291,23 @@ public class Processor {
         return peaks.toArray(new Integer[peaks.size()]);
     }
 
-    private List<Integer> pickPeaksDixon(double[] data, int m, int w, double delta, double alpha) {
+    private List<Integer> pickPeaksDixon(double[] data, int m, int w, double alpha, double delta) {
 
         // this is needed for the parameter study
         // if the member "delta" is set, override the given parameter
         // @see: setup()
 
-        if (this.delta != null) {
-            delta = this.delta;
+        if (this.setup_delta != null) {
+            delta = this.setup_delta;
         }
-        if (this.alpha != null) {
-            alpha = this.alpha;
+        if (this.setup_alpha != null) {
+            alpha = this.setup_alpha;
         }
-        if (this.w != null) {
-            w = this.w;
+        if (this.setup_w != null) {
+            w = this.setup_w;
         }
-        if (this.m != null) {
-            m = this.m;
+        if (this.setup_m != null) {
+            m = this.setup_m;
         }
 
         double mean = mean(data);
@@ -343,9 +337,7 @@ public class Processor {
 
             inner:
             for (int k = n - w; k <= n + w; k++) {
-                // TODO: the case k <0 should be handled by the outer loop indizes
-                // the error occurs when m = 0;
-                if (k >= 0 && k != n) {
+                if (k != n) {
                     if (data[n] < data[k]) {
                         continue outer;
                     }
@@ -364,12 +356,17 @@ public class Processor {
                 if (data[n] < sum1) {
                     continue outer;
                 }
-
             }
 
             peaks.add(n);
         }
         return peaks;
+    }
+
+    private double d2phi(double[] phi, int k) {
+        double dphi11 = normalizeAngle(normalizeAngle(phi[k]) + normalizeAngle(phi[k - 1]));
+        double dphi12 = normalizeAngle(normalizeAngle(phi[k - 1]) + normalizeAngle(phi[k - 2]));
+        return normalizeAngle(dphi11 - dphi12);
     }
 
     private double mean(double[] d) {
@@ -391,14 +388,18 @@ public class Processor {
     private double halfRect(double d) {
         return (d + abs(d)) / 2;
     }
+    private static final double TWO_PI = 2 * Math.PI;
+
+    private static double normalizeAngle(double a) {
+        return normalizeAngle(a, 0.0);
+    }
+
+    private static double normalizeAngle(double a, double center) {
+        return a - TWO_PI * Math.floor((a + Math.PI - center) / TWO_PI);
+    }
 
     private double radialDistance(double m1, double phi1, double m2, double phi2) {
-
-        /*
-         * http://en.wikipedia.org/wiki/Radial_distance_(geometry)
-         *
-         */
-
+        //  http://en.wikipedia.org/wiki/Radial_distance_(geometry)
         return sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
     }
 
