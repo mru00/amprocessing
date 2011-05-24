@@ -2,7 +2,10 @@
 
 #PBS -N OnsetDetection
 #PBS -l np=1
+<<<<<<< HEAD
 #PBD -l nodes=1
+=======
+>>>>>>> cfe39894d4875b4e581faf647d11e680bc1d0eb8
 #PBS -m be
 
 
