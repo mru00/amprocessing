@@ -45,8 +45,5 @@ ruft gnuplot auf und macht einen plot mit allen parametern und den ergebnissen d
 
 evaluate algorithm (computational) performance, runtime
 
-fix algorithm "1"
-
-
 fix algorithm parameters
 
