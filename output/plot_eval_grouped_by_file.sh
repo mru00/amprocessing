@@ -1,6 +1,6 @@
 #!/bin/bash -xe
 
-./find_max.sh > max.onsets.paramstudy.eval
+#./find_max.sh > max.onsets.paramstudy.eval
 
 
 {

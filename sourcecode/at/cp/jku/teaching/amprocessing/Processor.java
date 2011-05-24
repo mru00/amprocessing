@@ -59,6 +59,22 @@ public class Processor {
         m_audiofile.processFile();
     }
 
+    /* 
+     * for parameter study, i need to override the peakpicker parameters. 
+     * 
+     * when this.{m,w,alpha,delta} is not equal null, peakpicker will use 
+     * the member's values instead of the values supplied by the algorithms.
+     */
+    public void setup(Integer algorithm, Integer w, Integer m, Double delta, Double alpha) {
+        if (algorithm != null) {
+            this.algorithm = algorithm;
+        }
+        this.w = w;
+        this.m = m;
+        this.delta = delta;
+        this.alpha = alpha;
+    }
+
     // This method is called from the Runner and is the starting point of your onset detection / tempo extraction code
     public void analyze() {
         Log.log("Running Analysis...");
@@ -200,7 +216,7 @@ public class Processor {
             onsetDetectionFunction[n] = dphi_acc / mag_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 5, 4, 0.9, 0);
+        return pickPeaksDixon(onsetDetectionFunction, 4, 5, 0.9, 0.2);
     }
 
     // alg 6
@@ -285,6 +301,8 @@ public class Processor {
 
         // this is needed for the parameter study
         // if the member "delta" is set, override the given parameter
+        // @see: setup()
+
         if (this.delta != null) {
             delta = this.delta;
         }
@@ -382,16 +400,6 @@ public class Processor {
          */
 
         return sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
-    }
-
-    public void setup(Integer algorithm, Integer w, Integer m, Double delta, Double alpha) {
-        if (algorithm != null) {
-            this.algorithm = algorithm;
-        }
-        this.w = w;
-        this.m = m;
-        this.delta = delta;
-        this.alpha = alpha;
     }
 
     public LinkedList<Double> getOnsets() {
