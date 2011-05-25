@@ -130,13 +130,25 @@ public class Processor {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 2; n < numSamples; n++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+
+            final SpectralData f_n_2 = m_audiofile.spectralDataContainer.get(n - 2);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final SpectralData f_n = m_audiofile.spectralDataContainer.get(n);
+
+            final double[] phi_n_0 = f_n.phases;
+            final double[] phi_n_1 = f_n_1.phases;
+            final double[] phi_n_2 = f_n_2.phases;
 
             double dphi_acc = 0.0;
-            for (int k = 0; k < currentFrame.size; k++) {
-                dphi_acc += abs(d2phi(n, k));
+            for (int k = 0; k < f_n.size; k++) {
+
+                final double dphi_n_0 = normalizeAngle(phi_n_1[k], phi_n_0[k]) - phi_n_1[k];
+                final double dphi_n_1 = normalizeAngle(phi_n_2[k], phi_n_1[k]) - phi_n_2[k];
+                final double d2phi_n = normalizeAngle(dphi_n_1, dphi_n_0) - dphi_n_1;
+
+                dphi_acc += abs(d2phi_n);
             }
-            onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
+            onsetDetectionFunction[n] = dphi_acc / f_n.size;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, 0, 0, 0, 0);
@@ -149,11 +161,15 @@ public class Processor {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 1; n < numSamples; n++) {
-            final SpectralData lastFrame = m_audiofile.spectralDataContainer.get(n - 1);
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+
+            final SpectralData f_n = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final double[] mag_n = f_n.magnitudes;
+            final double[] mag_n_1 = f_n_1.magnitudes;
+
             double acc = 0.0;
-            for (int k = 0; k < currentFrame.size; k++) {
-                acc += halfRect(abs(currentFrame.magnitudes[k]) - abs(lastFrame.magnitudes[k]));
+            for (int k = 0; k < f_n.size; k++) {
+                acc += halfRect(abs(mag_n[k]) - abs(mag_n_1[k]));
             }
             onsetDetectionFunction[n] = acc;
         }
@@ -167,13 +183,22 @@ public class Processor {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 2; n < numSamples; n++) {
-            final SpectralData lastFrame = m_audiofile.spectralDataContainer.get(n - 1);
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
-            final double[] phi = currentFrame.unwrappedPhases;
+
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final SpectralData f_n_2 = m_audiofile.spectralDataContainer.get(n - 2);
+            final double[] phi_n = f_n_0.phases;
+            final double[] phi_n_1 = f_n_1.phases;
+            final double[] phi_n_2 = f_n_2.phases;
+            final double[] mag_n_0 = f_n_0.magnitudes;
+            final double[] mag_n_1 = f_n_1.magnitudes;
 
             double deviation_acc = 0.0;
-            for (int k = 0; k < currentFrame.size; k++) {
-                deviation_acc += radialDistance(currentFrame.magnitudes[k], phi[k], lastFrame.magnitudes[k], normalizeAngle(lastFrame.phases[k] + dphi(n - 1, k), 0.0));
+            for (int k = 0; k < f_n_0.size; k++) {
+
+                final double dphi_n_1 = normalizeAngle(phi_n_2[k], phi_n_1[k]) - phi_n_2[k];
+
+                deviation_acc += radialDistance(mag_n_0[k], phi_n[k], mag_n_1[k], normalizeAngle(phi_n_1[k] + dphi_n_1, 0.0));
             }
             onsetDetectionFunction[n] = deviation_acc;
         }
@@ -186,13 +211,24 @@ public class Processor {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 2; n < numSamples; n++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final SpectralData f_n_2 = m_audiofile.spectralDataContainer.get(n - 2);
+            final double[] mag_n_0 = f_n_0.magnitudes;
+            final double[] phi_n_0 = f_n_0.phases;
+            final double[] phi_n_1 = f_n_1.phases;
+            final double[] phi_n_2 = f_n_2.phases;
 
             double dphi_acc = 0.0;
-            for (int k = 0; k < currentFrame.size; k++) {
-                dphi_acc += abs(currentFrame.magnitudes[k] * d2phi(n, k));
+            for (int k = 0; k < f_n_0.size; k++) {
+
+                final double dphi_n_0 = normalizeAngle(phi_n_1[k], phi_n_0[k]) - phi_n_1[k];
+                final double dphi_n_1 = normalizeAngle(phi_n_2[k], phi_n_1[k]) - phi_n_2[k];
+                final double d2phi_n = normalizeAngle(dphi_n_1, dphi_n_0) - dphi_n_1;
+
+                dphi_acc += abs(mag_n_0[k] * d2phi_n);
             }
-            onsetDetectionFunction[n] = dphi_acc / currentFrame.size;
+            onsetDetectionFunction[n] = dphi_acc / f_n_0.size;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, 4, 5, 0.2, 0.9);
@@ -203,13 +239,25 @@ public class Processor {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 2; n < numSamples; n++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final SpectralData f_n_2 = m_audiofile.spectralDataContainer.get(n - 2);
+            final double[] mag_n_0 = f_n_0.magnitudes;
+            final double[] phi_n_0 = f_n_0.phases;
+            final double[] phi_n_1 = f_n_1.phases;
+            final double[] phi_n_2 = f_n_2.phases;
 
             double dphi_acc = 0.0;
             double mag_acc = 0.0;
-            for (int k = 0; k < currentFrame.size; k++) {
-                double X_n_k = currentFrame.magnitudes[k];
-                dphi_acc += abs(X_n_k * d2phi(n, k));
+            for (int k = 0; k < f_n_0.size; k++) {
+
+                final double dphi_n_0 = normalizeAngle(phi_n_1[k], phi_n_0[k]) - phi_n_1[k];
+                final double dphi_n_1 = normalizeAngle(phi_n_2[k], phi_n_1[k]) - phi_n_2[k];
+                final double d2phi_n = normalizeAngle(dphi_n_1, dphi_n_0) - dphi_n_1;
+
+                double X_n_k = mag_n_0[k];
+                dphi_acc += abs(X_n_k * d2phi_n);
                 mag_acc += abs(X_n_k);
             }
             onsetDetectionFunction[n] = dphi_acc / mag_acc;
@@ -224,12 +272,23 @@ public class Processor {
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 2; n < numSamples; n++) {
-            final SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
+
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final SpectralData f_n_2 = m_audiofile.spectralDataContainer.get(n - 2);
+            final double[] mag_n_0 = f_n_0.magnitudes;
+            final double[] mag_n_1 = f_n_1.magnitudes;
+            final double[] phi_n_0 = f_n_0.phases;
+            final double[] phi_n_1 = f_n_1.phases;
+            final double[] phi_n_2 = f_n_2.phases;
 
             double deviation_acc = 0.0;
-            for (int k = 0; k < currentFrame.size; k++) {
-                if (mag(n, k) >= mag(n - 1, k)) {
-                    deviation_acc += radialDistance(mag(n, k), phi(n,k), mag(n - 1, k), normalizeAngle(phi(n - 1, k) + dphi(n - 1, k), 0.0));
+            for (int k = 0; k < f_n_0.size; k++) {
+                if (mag_n_0[k] >= mag_n_1[k]) {
+
+                    final double dphi_n_1 = normalizeAngle(phi_n_2[k], phi_n_1[k]) - phi_n_2[k];
+
+                    deviation_acc += radialDistance(mag_n_0[k], phi_n_0[k], mag_n_1[k], normalizeAngle(phi_n_1[k] + dphi_n_1, 0.0));
                 }
             }
             onsetDetectionFunction[n] = deviation_acc;
@@ -245,15 +304,17 @@ public class Processor {
 
         for (int n = 1; n < numSamples; n++) {
 
-            SpectralData currentFrame = m_audiofile.spectralDataContainer.get(n);
-            SpectralData lastFrame = m_audiofile.spectralDataContainer.get(n - 1);
-            final double[] phi = currentFrame.unwrappedPhases;
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final double[] mag_n_0 = f_n_0.magnitudes;
+            final double[] mag_n_1 = f_n_1.magnitudes;
+            final double[] phi_n_0 = f_n_0.phases;
 
             double sum = 0.0;
-            for (int k = 0; k < currentFrame.size; k++) {
+            for (int k = 0; k < f_n_0.size; k++) {
                 // i assume currentFrame.size == lastFrame.size
 
-                double diff = radialDistance(mag(n, k), phi(n, k), mag(n - 1, k), phi(n, k));
+                double diff = radialDistance(mag_n_0[k], phi_n_0[k], mag_n_1[k], phi_n_0[k]);
                 sum += abs(diff);
             }
 
@@ -382,19 +443,19 @@ public class Processor {
         return peaks;
     }
 
-    private double phi(final int n, final int k) {
-        SpectralData c = m_audiofile.spectralDataContainer.get(n);
+    private final double phi(final int n, final int k) {
+        final SpectralData c = m_audiofile.spectralDataContainer.get(n);
         return c.phases[k];
     }
 
-    private double mag(final int n, final int k) {
-        SpectralData c = m_audiofile.spectralDataContainer.get(n);
+    private final double mag(final int n, final int k) {
+        final SpectralData c = m_audiofile.spectralDataContainer.get(n);
         return c.magnitudes[k];
     }
 
-    private double dphi(final int n, final int k) {
-        SpectralData c = m_audiofile.spectralDataContainer.get(n);
-        SpectralData l = m_audiofile.spectralDataContainer.get(n - 1);
+    private final double dphi(final int n, final int k) {
+        final SpectralData c = m_audiofile.spectralDataContainer.get(n);
+        final SpectralData l = m_audiofile.spectralDataContainer.get(n - 1);
 
         return normalizeAngle(l.phases[k], c.phases[k]) - l.phases[k];
     }
@@ -444,7 +505,7 @@ public class Processor {
         return (d + abs(d)) / 2;
     }
 
-    private double radialDistance(final double m1, final double phi1, final double m2, final double phi2) {
+    private final double radialDistance(final double m1, final double phi1, final double m2, final double phi2) {
         //  http://en.wikipedia.org/wiki/Radial_distance_(geometry)
         return sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
     }
