@@ -126,7 +126,6 @@ public class Processor {
 
     // alg 1
     private List<Integer> odf_phase_deviation() {
-        // TODO: this implementation is faulty, i think (unwrappedPhases ok?)
         final int numSamples = m_audiofile.spectralDataContainer.size();
 
         for (int n = 2; n < numSamples; n++) {
@@ -151,7 +150,7 @@ public class Processor {
             onsetDetectionFunction[n] = dphi_acc / f_n.size;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 0, 0, 0, 0);
+        return pickPeaksDixon(onsetDetectionFunction, 5, 2, 1, 0.9);
     }
 
     // alg 2
@@ -174,7 +173,7 @@ public class Processor {
             onsetDetectionFunction[n] = acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.45, 0.85);
+        return pickPeaksDixon(onsetDetectionFunction, 5, 5, 0.9, 0.9);
     }
 
     // alg 3
@@ -203,7 +202,7 @@ public class Processor {
             onsetDetectionFunction[n] = deviation_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.4, 0.8);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.3, 0.5);
     }
     // alg 4
 
@@ -231,7 +230,7 @@ public class Processor {
             onsetDetectionFunction[n] = dphi_acc / f_n_0.size;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 4, 5, 0.2, 0.9);
+        return pickPeaksDixon(onsetDetectionFunction, 4, 4, 0.7, 0.9);
     }
     // alg 5
 
@@ -263,7 +262,7 @@ public class Processor {
             onsetDetectionFunction[n] = dphi_acc / mag_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 5, 2, 0.0, 0.9);
+        return pickPeaksDixon(onsetDetectionFunction, 5, 2, 0.9, 0.9);
     }
 
     // alg 6
@@ -294,7 +293,7 @@ public class Processor {
             onsetDetectionFunction[n] = deviation_acc;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.6, 0.9);
+        return pickPeaksDixon(onsetDetectionFunction, 4, 4, 0.85, 0.9);
     }
 
     // alg 7
@@ -323,7 +322,7 @@ public class Processor {
             onsetDetectionFunction[n] = sum;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 4, 0.3, 0.5);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
     }
 
     /**
