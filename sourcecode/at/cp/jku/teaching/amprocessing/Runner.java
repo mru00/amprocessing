@@ -41,11 +41,13 @@ public class Runner {
         String outputTempoFileName = new String();
         String onsetGroundTruthFileName = new String();
         String tempoGroundTruthFileName = new String();
-        String plotFileName = null;
+        String odf_plotFileName = null;
+        String acf_plotFileName = null;
+        String ioi_plotFileName = null;
         boolean hasOnsetGroundTruth = false;
         boolean hasTempoGroundTruth = false;
 
-        OptionParser parser = new OptionParser("qi:o:g:t:p:");
+        OptionParser parser = new OptionParser("qi:o:g:t:p:r:s:");
         OptionSet options = parser.parse(args);
 
         if (options.has("q")) {
@@ -87,8 +89,16 @@ public class Runner {
         }
 
         if (options.has("p")) {
-            plotFileName = options.valueOf("p").toString();;
+            odf_plotFileName = options.valueOf("p").toString();
         }
+
+        if (options.has("r")) {
+            acf_plotFileName = options.valueOf("r").toString();
+        }
+        if (options.has("s")) {
+            ioi_plotFileName = options.valueOf("s").toString();
+        }
+
 
         if (options.has("t")) {
             tempoGroundTruthFileName = options.valueOf("t").toString();
@@ -113,9 +123,18 @@ public class Runner {
             evaluateTempo(p.getTempo(), tempoGroundTruthFileName, tempoEvalOut);
         }
 
-        if (plotFileName != null) {
-            writeDataToFile(p.onsetDetectionFunction, p.m_audiofile.hopTime, plotFileName);
+        if (odf_plotFileName != null) {
+            writeDataToFile(p.onsetDetectionFunction, p.m_audiofile.hopTime, odf_plotFileName);
         }
+
+        if (acf_plotFileName != null) {
+            writeDataToFile(p.acf, p.m_audiofile.hopTime, acf_plotFileName);
+        }
+
+        if (ioi_plotFileName != null) {
+        //    writeDataToFile(p.ioi.toArray(new int[0]), p.m_audiofile.hopTime, ioi_plotFileName);
+        }
+
     }
 
     /*
@@ -134,6 +153,7 @@ public class Runner {
         }
     }
 
+    
     private static void writeDataToFile(double[] data, double hoptime, String filename) {
         try {
             FileWriter outputwriter = new FileWriter(filename);
@@ -151,6 +171,21 @@ public class Runner {
     }
 
 
+    private static void writeDataToFile(int[] data, double hoptime, String filename) {
+        try {
+            FileWriter outputwriter = new FileWriter(filename);
+            int i = 0;
+            for (int d : data) {
+                outputwriter.write(i * hoptime + " ");
+                outputwriter.write(d + "\n");
+                i++;
+            }
+            outputwriter.flush();
+            outputwriter.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Runner.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
     /*
      * Simple Fileout Method for a single double (the tempo...)
      */

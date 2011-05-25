@@ -35,7 +35,11 @@ public class Processor {
     // this variable should contain your result of the tempo estimation algorithm
     private double m_tempo;
     double[] onsetDetectionFunction;
-    private int algorithm;
+    double[] acf = new double[0];
+    List<Integer> ioi = new LinkedList<Integer>();
+
+    ;
+    private int odf_algorithm;
     private Integer setup_m = null;
     private Integer setup_w = null;
     private Double setup_alpha = null;
@@ -43,7 +47,7 @@ public class Processor {
 
     public Processor(String filename, int algorithm) {
         this(filename);
-        this.algorithm = algorithm;
+        this.odf_algorithm = algorithm;
     }
 
     public Processor(String filename) {
@@ -74,7 +78,7 @@ public class Processor {
      */
     public void setup(Integer algorithm, Integer w, Integer m, Double alpha, Double delta) {
         if (algorithm != null) {
-            this.algorithm = algorithm;
+            this.odf_algorithm = algorithm;
         }
         this.setup_w = w;
         this.setup_m = m;
@@ -92,7 +96,7 @@ public class Processor {
         m_onsetList.clear();
 
         List<Integer> peaks;
-        switch (algorithm) {
+        switch (odf_algorithm) {
             case 1:
                 peaks = odf_phase_deviation();
                 break;
@@ -122,6 +126,113 @@ public class Processor {
         for (int p : peaks) {
             m_onsetList.add(p * m_audiofile.hopTime);
         }
+
+        m_tempo = bdf_ioi();
+
+    }
+
+    /**
+     * beat detection function: autocorrelation
+     * @return
+     */
+    private double bdf_acf() {
+        final int numSamples = m_audiofile.spectralDataContainer.size();
+
+        final double[] rect_odf = new double[numSamples];
+        for (int i = 0; i < numSamples; i++) {
+            rect_odf[i] = halfRect(onsetDetectionFunction[i]);
+        }
+
+
+        final int from = (int) (0.3 / m_audiofile.hopTime);
+        final int to = (int) (1.0 / m_audiofile.hopTime);
+
+        System.out.println("from/to:" + from + " " + to);
+
+        acf = new double[to];
+
+        for (int tau = from; tau < to; tau++) {
+            double r_tau = 0.0;
+            for (int k = 0; k < rect_odf.length - tau; k++) {
+                r_tau += rect_odf[k + tau] * rect_odf[k];
+            }
+            acf[tau] = r_tau;
+        }
+        int peakIdx = 0;
+
+        if (false) {
+            List<Integer> peaks = pickPeaksDixon(acf, 5, 5, 0.99, 0.5);
+            if (peaks.isEmpty()) {
+                peakIdx = 0;
+            } else {
+                peakIdx = peaks.get(0);
+            }
+
+        } else {
+            peakIdx = (findMax(acf));
+        }
+
+        System.out.println("peak at: " + peakIdx * m_audiofile.hopTime);
+        return 60.0 / (peakIdx * m_audiofile.hopTime);
+    }
+
+    private int bpmToIndex(double bpm) {
+        return (int)(60.0/(m_audiofile.hopTime*bpm));
+    }
+    private double bdf_ioi() {
+
+
+        final int from = bpmToIndex(200);
+        final int to = bpmToIndex(50);
+
+
+        System.out.println("from/to:" + from + " " + to);
+        
+        ioi.clear();
+
+        int[] hist = new int[to];
+
+        for (double d1 : m_onsetList) {
+            for (double d2 : m_onsetList) {
+
+                int distance = (int) (abs(d2 - d1) / m_audiofile.hopTime);
+                if (distance > from && distance < to) {
+                    hist[distance] ++;
+                }
+            }
+        }
+
+        for (int h: hist) {
+            ioi.add(h);
+        }
+
+        int peakIdx = 0;
+        peakIdx = findMax(ioi);
+        return 60 / (peakIdx * m_audiofile.hopTime);
+    }
+
+    private int findMax(final double[] d) {
+        double max = Double.MIN_VALUE;
+        int idx = -1;
+        for (int i = 0; i < d.length; i++) {
+            if (d[i] > max) {
+                max = d[i];
+                idx = i;
+            }
+        }
+        return idx;
+    }
+
+    private int findMax(final List<Integer> d) {
+        int max = Integer.MIN_VALUE;
+        int idx = -1;
+        for (int i = 0; i < d.size(); i++) {
+            if (d.get(i) > max) {
+                max = d.get(i);
+                idx = i;
+            }
+        }
+        return idx;
     }
 
     // alg 1
@@ -150,7 +261,7 @@ public class Processor {
             onsetDetectionFunction[n] = dphi_acc / f_n.size;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 5, 2, 1, 0.9);
+        return pickPeaksDixon(onsetDetectionFunction, 50, 20, 1, 0.9);
     }
 
     // alg 2
@@ -186,7 +297,7 @@ public class Processor {
             final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
             final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
             final SpectralData f_n_2 = m_audiofile.spectralDataContainer.get(n - 2);
-            final double[] phi_n = f_n_0.phases;
+            final double[] phi_n_0 = f_n_0.phases;
             final double[] phi_n_1 = f_n_1.phases;
             final double[] phi_n_2 = f_n_2.phases;
             final double[] mag_n_0 = f_n_0.magnitudes;
@@ -197,7 +308,7 @@ public class Processor {
 
                 final double dphi_n_1 = normalizeAngle(phi_n_2[k], phi_n_1[k]) - phi_n_2[k];
 
-                deviation_acc += radialDistance(mag_n_0[k], phi_n[k], mag_n_1[k], normalizeAngle(phi_n_1[k] + dphi_n_1, 0.0));
+                deviation_acc += radialDistance(mag_n_0[k], phi_n_0[k], mag_n_1[k], normalizeAngle(phi_n_1[k] + dphi_n_1, 0.0));
             }
             onsetDetectionFunction[n] = deviation_acc;
         }
@@ -308,12 +419,13 @@ public class Processor {
             final double[] mag_n_0 = f_n_0.magnitudes;
             final double[] mag_n_1 = f_n_1.magnitudes;
             final double[] phi_n_0 = f_n_0.phases;
+            final double[] phi_n_1 = f_n_1.phases;
 
             double sum = 0.0;
             for (int k = 0; k < f_n_0.size; k++) {
                 // i assume currentFrame.size == lastFrame.size
 
-                double diff = radialDistance(mag_n_0[k], phi_n_0[k], mag_n_1[k], phi_n_0[k]);
+                double diff = radialDistance(mag_n_0[k], phi_n_0[k], mag_n_1[k], phi_n_1[k]);
                 sum += abs(diff);
             }
 
@@ -325,30 +437,31 @@ public class Processor {
         return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
     }
 
-    /**
-     * naive peak picking
-     * @param data
-     * @param threshold
-     * @return
-     */
-    private Integer[] pickPeaksSimple(double[] data, double threshold) {
-        List<Integer> peaks = new LinkedList<Integer>();
+    // alg 8
+    private List<Integer> odf_frame_distance_2() {
 
-        // simple peak picking
-        for (int n = 1; n < data.length - 1; n++) {
+        final int numSamples = m_audiofile.spectralDataContainer.size();
 
-            // possible peak
-            if (data[n] > threshold && data[n - 1] < data[n] && data[n] > data[n + 1]) {
+        for (int n = 1; n < numSamples; n++) {
 
-                // TODO: find a way to remove the constant
-                // either filter the fftshift (matlab: filtfilt)
-                // or calculate something reasonable from hopTime
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final SpectralData f_n_1 = m_audiofile.spectralDataContainer.get(n - 1);
+            final double[] mag_n_0 = f_n_0.magnitudes;
+            final double[] mag_n_1 = f_n_1.magnitudes;
+            final double[] phi_n_0 = f_n_0.phases;
 
-                peaks.add(n);
+            double sum = 0.0;
+            for (int k = 0; k < f_n_0.size; k++) {
+                // i assume currentFrame.size == lastFrame.size
 
+                double diff = radialDistance(mag_n_0[k], phi_n_0[k], mag_n_1[k], phi_n_0[k]);
+                sum += abs(diff);
             }
+
+            onsetDetectionFunction[n] = sum;
         }
-        return peaks.toArray(new Integer[peaks.size()]);
+
+        return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
     }
 
     /**
@@ -442,37 +555,6 @@ public class Processor {
         return peaks;
     }
 
-    private final double phi(final int n, final int k) {
-        final SpectralData c = m_audiofile.spectralDataContainer.get(n);
-        return c.phases[k];
-    }
-
-    private final double mag(final int n, final int k) {
-        final SpectralData c = m_audiofile.spectralDataContainer.get(n);
-        return c.magnitudes[k];
-    }
-
-    private final double dphi(final int n, final int k) {
-        final SpectralData c = m_audiofile.spectralDataContainer.get(n);
-        final SpectralData l = m_audiofile.spectralDataContainer.get(n - 1);
-
-        return normalizeAngle(l.phases[k], c.phases[k]) - l.phases[k];
-    }
-
-    /**
-     * second derivative of phi
-     * @param phi
-     * @param k
-     * @return
-     */
-    private double d2phi(final int n, final int k) {
-        // angles in phi must be normalized; fft results in normalzied angles
-        final double dphi1 = dphi(n, k);
-        final double dphi2 = dphi(n - 1, k);
-        return normalizeAngle(dphi2, dphi1) - dphi1;
-
-    }
-
     /**
      * mean of array
      * @param d
@@ -504,7 +586,7 @@ public class Processor {
         return (d + abs(d)) / 2;
     }
 
-    private final double radialDistance(final double m1, final double phi1, final double m2, final double phi2) {
+    private double radialDistance(final double m1, final double phi1, final double m2, final double phi2) {
         //  http://en.wikipedia.org/wiki/Radial_distance_(geometry)
         return sqrt(m1 * m1 + m2 * m2 - 2 * m1 * m2 * cos(phi1 - phi2));
     }

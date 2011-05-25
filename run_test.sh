@@ -8,8 +8,11 @@ ant
 for f in data/*.wav; do
   mainclass=at.cp.jku.teaching.amprocessing.Runner
   basename=$(basename $f .wav)
-  java $mainclass -i $f -g data/$basename.onsets -t data/$basename.bpms -o output -p output/$basename.odf -q
+  java $mainclass -i $f -g data/$basename.onsets -t data/$basename.bpms -o output -p output/$basename.odf -r output/$basename.acf -s output/$basename.ioi -q
   cat output/$basename.onsets.eval
+  cat output/$basename.tempo
+  cat data/$basename.bpms
+  cat output/$basename.tempo.eval
   (
   gnuplot <<EOF
   set terminal png size 800,600

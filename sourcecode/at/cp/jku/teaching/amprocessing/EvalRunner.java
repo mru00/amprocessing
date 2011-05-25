@@ -23,7 +23,12 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 /**
- * @author andreas arzt
+ *
+ * runs all algorithms with the parameters specified by the algorithms.
+ *
+ * produces the output files "train??.onsets.fixedparam.eval"
+ *
+ * @author mru
  */
 public class EvalRunner {
 

@@ -23,7 +23,13 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 /**
- * @author andreas arzt
+ *
+ * runs all algorithms and tries a range of parameters for each, to find
+ * the best parameterization for every algorithm
+ *
+ * produces the output files "train??.onsets.paramstudy.<ALG>.eval"
+ *
+ * @author mru
  */
 public class ParamStudyRunner {
 
