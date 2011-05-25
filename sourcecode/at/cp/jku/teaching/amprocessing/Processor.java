@@ -12,6 +12,9 @@
  * [1] http://www.dafx.ca/proceedings/papers/p_133.pdf
  * [2] http://java-gaming.org/index.php?topic=24191.0
  * [3] http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.60.9607&rep=rep1&type=pdf
+ * [4] http://www.music.mcgill.ca/~hockman/other/hockman_beat_tracking_unfinished.pdf
+ * [5] http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.60.9607&rank=1
+ *
  */
 package at.cp.jku.teaching.amprocessing;
 
@@ -40,6 +43,7 @@ public class Processor {
     private final int bpmMin = 50;
     private final int bpmMax = 200;
     private int odf_algorithm;
+    private int bdf_algorithm;
     private Integer setup_m = null;
     private Integer setup_w = null;
     private Double setup_alpha = null;
@@ -55,6 +59,8 @@ public class Processor {
         m_filename = filename;
         m_onsetList = new LinkedList<Double>();
         m_onsetListFrames = new LinkedList<Integer>();
+
+        bdf_algorithm = 1;
 
         Log.log("Reading Audio-File " + filename);
         Log.log("Performing FFT...");
@@ -118,6 +124,19 @@ public class Processor {
             case 7:
                 peaks = odf_frame_distance();
                 break;
+
+            case 8:
+                peaks = odf_frame_distance_2();
+                break;
+
+            case 9:
+                peaks = odf_hfc_1();
+                break;
+
+            case 10:
+                peaks = odf_hfc_2();
+                break;
+
             default:
                 peaks = null;
         }
@@ -127,7 +146,18 @@ public class Processor {
             m_onsetList.add(p * m_audiofile.hopTime);
         }
 
-        m_tempo = bdf_acf();
+        switch (bdf_algorithm) {
+            case 1:
+                m_tempo = bdf_acf();
+                break;
+            case 2:
+                m_tempo = bdf_ioi();
+                break;
+            default:
+                m_tempo = 0;
+
+        }
+
 
     }
 
@@ -460,6 +490,63 @@ public class Processor {
             }
 
             onsetDetectionFunction[n] = sum;
+        }
+
+        return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
+    }
+
+    // alg 9 [5]
+    private List<Integer> odf_hfc_1() {
+
+        final int frameCount = m_audiofile.spectralDataContainer.size();
+        final int frameSize = m_audiofile.spectralDataContainer.get(0).size;
+
+        double hfc_n = 1.0;
+        double hfc_n_1 = Double.NaN;
+
+        for (int n = 0; n < frameCount; n++) {
+
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final double[] mag_n_0 = f_n_0.magnitudes;
+
+            hfc_n_1 = hfc_n;
+            hfc_n = 0.0;
+            double mag_acc = 0.0;
+            for (int k = frameSize/2; k < frameSize; k++) {
+                double mag = mag_n_0[k] * mag_n_0[k];
+                hfc_n += mag * k;
+                mag_acc += mag;
+            }
+
+            onsetDetectionFunction[n] = (hfc_n / hfc_n_1) * (hfc_n / mag_acc);
+        }
+
+        return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
+    }
+
+    // alg 10 [5]
+    private List<Integer> odf_hfc_2() {
+
+        final int frameCount = m_audiofile.spectralDataContainer.size();
+        final int frameSize = m_audiofile.spectralDataContainer.get(0).size;
+
+        double hfc_n = 0.0;
+        double hfc_n_1 = Double.NaN;
+
+        for (int n = 0; n < frameCount; n++) {
+
+            final SpectralData f_n_0 = m_audiofile.spectralDataContainer.get(n);
+            final double[] mag_n_0 = f_n_0.magnitudes;
+
+            hfc_n_1 = hfc_n;
+            hfc_n = 0.0;
+            for (int k = frameSize/2; k < frameSize; k++) {
+
+                hfc_n += abs(mag_n_0[k]) * k * k;
+
+            }
+
+            onsetDetectionFunction[n] = hfc_n - hfc_n_1;
         }
 
         return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);

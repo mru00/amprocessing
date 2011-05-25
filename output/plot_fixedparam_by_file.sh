@@ -35,7 +35,7 @@ set style fill solid border -1
 set datafile missing "-"
 set yrange [0:1]
 
-plot for [i=2:8] "fixed_grouped_by_file.eval" u i t ""
+plot for [i=2:11] "fixed_grouped_by_file.eval" u i t ""
 
 EOF
 

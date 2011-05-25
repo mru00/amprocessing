@@ -101,7 +101,7 @@ public class ParamStudyRunner {
 
         Processor p = new Processor(wavFileName);
 
-        for (int alg = 1; alg < 8; alg++) {
+        for (int alg = 8; alg <= 10; alg++) {
 
 
 

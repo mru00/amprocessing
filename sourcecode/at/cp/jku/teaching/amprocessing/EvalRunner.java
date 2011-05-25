@@ -100,7 +100,7 @@ public class EvalRunner {
             outputwriter.append(gnuplotcomment + "alg TP FP FN PRECISION RECALL FMEASURE");
             outputwriter.append('\n');
 
-            for (int alg = 1; alg < 8; alg++) {
+            for (int alg = 1; alg <= 10; alg++) {
 
                 // pass all null-values: don't override the defaults of the algorithm
                 p.setup(alg, null, null, null, null);
