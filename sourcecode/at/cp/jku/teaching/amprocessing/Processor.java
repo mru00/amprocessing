@@ -37,8 +37,8 @@ public class Processor {
     double[] onsetDetectionFunction;
     double[] acf = new double[0];
     List<Integer> ioi = new LinkedList<Integer>();
-
-    ;
+    private final int bpmMin = 50;
+    private final int bpmMax = 200;
     private int odf_algorithm;
     private Integer setup_m = null;
     private Integer setup_w = null;
@@ -127,7 +127,7 @@ public class Processor {
             m_onsetList.add(p * m_audiofile.hopTime);
         }
 
-        m_tempo = bdf_ioi();
+        m_tempo = bdf_acf();
 
     }
 
@@ -143,11 +143,8 @@ public class Processor {
             rect_odf[i] = halfRect(onsetDetectionFunction[i]);
         }
 
-
-        final int from = (int) (0.3 / m_audiofile.hopTime);
-        final int to = (int) (1.0 / m_audiofile.hopTime);
-
-        System.out.println("from/to:" + from + " " + to);
+        final int from = bpmToIndex(bpmMax);
+        final int to = bpmToIndex(bpmMin);
 
         acf = new double[to];
 
@@ -158,36 +155,40 @@ public class Processor {
             }
             acf[tau] = r_tau;
         }
-        int peakIdx = 0;
 
-        if (false) {
-            List<Integer> peaks = pickPeaksDixon(acf, 5, 5, 0.99, 0.5);
-            if (peaks.isEmpty()) {
-                peakIdx = 0;
-            } else {
-                peakIdx = peaks.get(0);
-            }
-
-        } else {
-            peakIdx = (findMax(acf));
-        }
+        int peakIdx = bdf_acf_pick_peak_max();
 
         System.out.println("peak at: " + peakIdx * m_audiofile.hopTime);
         return 60.0 / (peakIdx * m_audiofile.hopTime);
     }
 
-    private int bpmToIndex(double bpm) {
-        return (int)(60.0/(m_audiofile.hopTime*bpm));
+    private int bdf_acf_pick_peak_max() {
+        return findMax(acf);
     }
+
+    private int bdf_acf_pick_peak_dixon() {
+        List<Integer> peaks = pickPeaksDixon(acf, 5, 5, 0.99, 0.5);
+        if (peaks.isEmpty()) {
+            return 0;
+        } else {
+            return peaks.get(0);
+        }
+    }
+
+    private int bpmToIndex(double bpm) {
+        return (int) (60.0 / (m_audiofile.hopTime * bpm));
+    }
+
+    /**
+     * tempo extraction using inter onset intervals
+     * @return
+     */
     private double bdf_ioi() {
 
 
-        final int from = bpmToIndex(200);
-        final int to = bpmToIndex(50);
+        final int from = bpmToIndex(bpmMax);
+        final int to = bpmToIndex(bpmMin);
 
-
-        System.out.println("from/to:" + from + " " + to);
-        
         ioi.clear();
 
         int[] hist = new int[to];
@@ -197,12 +198,12 @@ public class Processor {
 
                 int distance = (int) (abs(d2 - d1) / m_audiofile.hopTime);
                 if (distance > from && distance < to) {
-                    hist[distance] ++;
+                    hist[distance]++;
                 }
             }
         }
 
-        for (int h: hist) {
+        for (int h : hist) {
             ioi.add(h);
         }
 
