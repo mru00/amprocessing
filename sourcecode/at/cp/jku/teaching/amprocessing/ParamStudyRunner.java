@@ -101,11 +101,11 @@ public class ParamStudyRunner {
 
         Processor p = new Processor(wavFileName);
 
-        for (int alg = 8; alg <= 10; alg++) {
+        for (int alg = 9; alg <= 10; alg++) {
 
 
 
-            String onsetEvalOut = outputDirectory + shortWavFileName + ".onsets.paramstudy." + alg + ".eval";
+            String onsetEvalOut = outputDirectory + shortWavFileName + ".onsets.paramstudy." + nd.format(alg) + ".eval";
             String gnuplotcomment = "";
 
             System.out.println("detection for " + shortWavFileName + " alg: " + alg);
@@ -147,6 +147,7 @@ public class ParamStudyRunner {
         }
     }
     private static NumberFormat fd = new DecimalFormat("#.###");
+    private static NumberFormat nd = new DecimalFormat("00");
     private static LinkedList<Double> groundtruthOnsets_cache = null;
     // Evaluate the Onset Estimations
 
