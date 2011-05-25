@@ -48,7 +48,7 @@ BEGIN {
 }
 
 END {
-  for(i=1; i<=7; i++){
+  for(i=1; i<=10; i++){
     split(substr(a_m[i], 1), a2_m, " ")
     split(substr(a_w[i], 1), a2_w, " ")
     split(substr(a_a[i], 1), a2_a, " ")
