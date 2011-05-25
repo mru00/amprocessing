@@ -4,7 +4,7 @@
 
 ant
 
-BD=/media/co-resident/data/onset_detection
+BD=~/onset_detection
 
 qsub -t 1-20 -d $BD $BD/run_pbs_single.sh
 
