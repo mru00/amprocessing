@@ -521,7 +521,7 @@ public class Processor {
             onsetDetectionFunction[n] = (hfc_n / hfc_n_1) * (hfc_n / mag_acc);
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
+        return pickPeaksDixon(onsetDetectionFunction, 5, 4, 0.4, 0.7);
     }
 
     // alg 10 [5]
