@@ -95,7 +95,7 @@ public class Runner {
             hasTempoGroundTruth = true;
         }
 
-        Processor p = new Processor(wavFileName, 7);
+        Processor p = new Processor(wavFileName, 2);
         p.analyze();
 
         Log.log();
