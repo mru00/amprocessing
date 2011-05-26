@@ -492,7 +492,7 @@ public class Processor {
             onsetDetectionFunction[n] = sum;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
+        return pickPeaksDixon(onsetDetectionFunction, 3, 2, 0.3, 0.9);
     }
 
     // alg 9 [5]
@@ -549,7 +549,7 @@ public class Processor {
             onsetDetectionFunction[n] = hfc_n - hfc_n_1;
         }
 
-        return pickPeaksDixon(onsetDetectionFunction, 3, 5, 0.5, 0.9);
+        return pickPeaksDixon(onsetDetectionFunction, 5, 4, 0.85, 0.9);
     }
 
     /**
