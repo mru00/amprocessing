@@ -28,10 +28,10 @@ function def(a) {
 BEGIN {
 }
 
-/train...onsets.paramstudy...eval/ { 
+/train...onsets.paramstudy....eval/ { 
 
   file = substr($0, 6,2);
-  alg = substr($0, 27,1);
+  alg = substr($0, 27,2);
 
   fmeas = def($11)
   m = def($2)
@@ -49,19 +49,20 @@ BEGIN {
 
 END {
   for(i=1; i<=10; i++){
-    split(substr(a_m[i], 1), a2_m, " ")
-    split(substr(a_w[i], 1), a2_w, " ")
-    split(substr(a_a[i], 1), a2_a, " ")
-    split(substr(a_d[i], 1), a2_d, " ")
+    ind=sprintf("%02d", i)
+    split(substr(a_m[ind], 1), a2_m, " ")
+    split(substr(a_w[ind], 1), a2_w, " ")
+    split(substr(a_a[ind], 1), a2_a, " ")
+    split(substr(a_d[ind], 1), a2_d, " ")
 
     print  ""
-    print "algorithm: " i
-    print "n: " a_n[i]
-    print "f: " a_f[i]
-    print "m: " a_m[i] " -> " median(a2_m) 
-    print "w: " a_w[i] " -> " median(a2_w) 
-    print "a: " a_a[i] " -> " median(a2_a) 
-    print "d: " a_d[i] " -> " median(a2_d)
+    print "algorithm: " ind
+    print "n: " a_n[ind]
+    print "f: " a_f[ind]
+    print "m: " a_m[ind] " -> " median(a2_m) 
+    print "w: " a_w[ind] " -> " median(a2_w) 
+    print "a: " a_a[ind] " -> " median(a2_a) 
+    print "d: " a_d[ind] " -> " median(a2_d)
 
   }
 }

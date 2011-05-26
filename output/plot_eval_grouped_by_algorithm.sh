@@ -6,10 +6,10 @@
 {
 awk -f - max.onsets.paramstudy.eval <<"EOF"
 
-/train...onsets.paramstudy...eval/ { 
+/train...onsets.paramstudy....eval/ { 
 
 file = substr($0, 6,2);
-alg = substr($0, 27,1);
+alg = substr($0, 27,2);
 fmeas = $11
 if (!fmeas) { fmeas = "-" }
 
@@ -23,7 +23,7 @@ data[alg] = data[alg] fmeas
 
 END {
 
-for(i=1; i<=7; i++){
+for(i=1; i<=10; i++){
 
   print i " " data[i]
 }

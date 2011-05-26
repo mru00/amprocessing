@@ -30,8 +30,10 @@ done
 set terminal png size 1024,768
 set style data histogram
 set title "F-Measure for every algorithm grouped by file, fixed parameters"
-set style histogram clustered gap 5
-set style fill solid border -1
+set style histogram clustered gap 4
+
+set boxwidth 0.9
+set style fill solid 
 set datafile missing "-"
 set yrange [0:1]
 
