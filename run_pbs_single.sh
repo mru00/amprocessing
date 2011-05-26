@@ -1,6 +1,7 @@
 #! /bin/bash -e
 
 #PBS -N odf
+#PBS -l nice 12
 #PBS -m be
 
 
